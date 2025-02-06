@@ -1,0 +1,35 @@
+body, html {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center; /* Centers content horizontally */
+    align-items: center; /* Centers content vertically */
+    background-color: #171717; /* Optional: Background color */
+}
+  
+.terrain {
+    text-align: center;
+    font-family: Roboto, sans-serif;
+}
+  
+.grid-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.grid-row {
+    display: flex;
+}
+
+.grid-cell {
+    width: 20px;
+    height: 20px;
+    position: relative; /* Ensure the cell is a positioning context for the image */
+}
+
+.grid-cell img {
+    pointer-events: none; /* Ensure the image doesn't interfere with clicks */
+}
