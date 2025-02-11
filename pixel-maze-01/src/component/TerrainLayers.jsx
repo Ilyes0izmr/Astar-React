@@ -4,36 +4,36 @@ import PropTypes from "prop-types";
 const TerrainLayers = ({ grid }) => {
   const [imagePaths, setImagePaths] = useState({});
 
-  // Function to determine the background color based on the cell's ID
+  
   const getColor = (id) => {
     switch (id) {
       case 0:
-        return "#ffffff"; // white area
+        return "rgb(56,216,142)" 
       case 1:
-        return "#c0d470"; // grass
+        return "#c0d470";
       case 2:
-        return "#e8cfa6"; // dirt
+        return "#e8cfa6"; 
       case 3:
-        return "#9bd4c3"; // water
+        return "#9bd4c3"; 
       default:
-        return "white"; // Default color
+        return "white"; 
     }
   };
 
-  // Function to generate the image name based on the cell's ID and neighbor value
+  
   const getImageName = (id, neighbor) => {
-    return `${id}${neighbor}`; // Combine ID and neighbor into a string
+    return `${id}${neighbor}`; 
   };
 
-  // Load images dynamically based on the grid data
+  
   useEffect(() => {
     const loadImages = async () => {
       const paths = {};
       for (let row of grid) {
         for (let cell of row) {
-          // Randomly select a neighbor value for cells with id === 0
+          
           if (cell.id === 0 && !cell.neighbor) {
-            const randomNeighbor = Math.floor(Math.random() * 5); // Randomly choose 0, 1, or 2
+            const randomNeighbor = Math.floor(Math.random() * 4);
             cell.neighbor = randomNeighbor;
           }
 
@@ -44,7 +44,7 @@ const TerrainLayers = ({ grid }) => {
               paths[imageName] = module.default;
             } catch (error) {
               console.error(`Failed to load image: ${imageName}.png`, error);
-              paths[imageName] = null; // Fallback if image doesn't exist
+              paths[imageName] = null; 
             }
           }
         }
@@ -59,7 +59,7 @@ const TerrainLayers = ({ grid }) => {
       {grid.map((row, rowIndex) => (
         <div key={rowIndex} className="grid-row">
           {row.map((cell, colIndex) => {
-            const imageName = getImageName(cell.id, cell.neighbor); // Use the new logic
+            const imageName = getImageName(cell.id, cell.neighbor); 
             const imagePath = imagePaths[imageName];
             return (
               <div
@@ -68,7 +68,7 @@ const TerrainLayers = ({ grid }) => {
                 style={{ backgroundColor: getColor(cell.id) }}
                 title={`ID: ${cell.id}, Neighbor: ${cell.neighbor}`}
               >
-                {/* Render the image if it exists */}
+                
                 {imagePath && (
                   <img
                     src={imagePath}
@@ -79,7 +79,7 @@ const TerrainLayers = ({ grid }) => {
                       position: "absolute",
                       top: 0,
                       left: 0,
-                      objectFit: "cover", // Ensure the image covers the cell
+                      objectFit: "cover", 
                     }}
                   />
                 )}
@@ -92,13 +92,13 @@ const TerrainLayers = ({ grid }) => {
   );
 };
 
-// Define PropTypes to validate the structure of the grid
+
 TerrainLayers.propTypes = {
   grid: PropTypes.arrayOf(
     PropTypes.arrayOf(
       PropTypes.shape({
-        id: PropTypes.number.isRequired, // ID of the terrain block
-        neighbor: PropTypes.number, // Neighbor value (can be undefined initially)
+        id: PropTypes.number.isRequired, 
+        neighbor: PropTypes.number, 
       })
     ).isRequired
   ).isRequired,

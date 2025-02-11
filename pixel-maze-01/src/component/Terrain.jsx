@@ -15,21 +15,30 @@ const Terrain = () => {
                 }))
             );
 
+            /*for (let i = 0; i < size; i++) {
+                for (let j = 0; j < size; j++) {
+                    const value = Math.floor(Math.random() * 3) + 1; // random 1, 2, or 3 for the block id
+                    newMatrix[i][j].id = value;
+                
+                }
+            }*/
+                
+
             const staticPattern = [
-                [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-                [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-                [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-                [1, 0, 0, 3, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1],
-                [1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1],
-                [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-                [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-                [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-                [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-                [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-                [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-                [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-                [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-                [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+                [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+                [0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1],
+                [0, 0, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0, 0, 1],
+                [0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 0, 1],
+                [0, 0, 1, 0, 0, 1, 1, 1, 0, 1, 1, 1, 0, 0, 1],
+                [1, 0, 0, 0, 0, 1, 1, 1, 0, 0, 1, 0, 0, 0, 1],
+                [1, 1, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 1],
+                [1, 0, 1, 0, 1, 1, 1, 1, 0, 1, 1, 0, 1, 0, 1],
+                [1, 1, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0, 0, 1],
+                [1, 0, 0, 1, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1],
+                [1, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+                [1, 1, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1],
+                [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1],
+                [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 1],
                 [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
             ];
 
@@ -57,23 +66,95 @@ const Terrain = () => {
             
                     /* 2all logic: currentId === 1 */
                     if (currentId === 1) {
-                        if (eastNeighbor !== 1 && westNeighbor === 1 && southWestNeighbor !== 1 && southNeighbor === 1) { 
+
+                        if(eastNeighbor !== 1 && westNeighbor !== 1 && southNeighbor !== 1 && northNeighbor === 1 ){
+                            newMatrix[row][col].neighbor = 21;
+                            continue;
+                        }
+                        if(eastNeighbor === 1 && westNeighbor === 1 && southNeighbor === 1 && 
+                            southWestNeighbor === 1 &&  southEastNeighbor !== 1){
+                            newMatrix[row][col].neighbor = 17;
+                            continue;
+                        }
+                        if(eastNeighbor !== 1  && southNeighbor === 9 ){
+                            newMatrix[row][col].neighbor = 20;
+                            continue;
+                        }
+                        if(
+                            eastNeighbor === 1 && westNeighbor !== 1 && southNeighbor !== 1 && northNeighbor === 1 && 
+                            southWestNeighbor !== 9 
+                        ){
+                            newMatrix[row][col].neighbor = 13; 
+                            continue;
+                        }
+                        if(eastNeighbor !== 1  && southNeighbor !== 1){
+                            newMatrix[row][col].neighbor = 15;
+                            continue;
+                        }
+                        if(eastNeighbor === 1 && westNeighbor !== 1 && southNeighbor === 1 && northNeighbor !== 1 &&
+                            southWestNeighbor !== 1 && northEastNeighbor !== 1 && northWestNeighbor !== 1 && southEastNeighbor === 1){
+                            newMatrix[row][col].neighbor = 9;
+                            continue;
+                        }
+                        if((eastNeighbor !== 1 && westNeighbor === 1 && southNeighbor === 1  &&
+                            southWestNeighbor !== 1 )){
+                            newMatrix[row][col].neighbor = 14;
+                            continue;
+                        }
+                        
+                        if(
+                            eastNeighbor !== 1 && westNeighbor === 1 && southNeighbor !== 1 && northNeighbor === 1 && 
+                            southWestNeighbor !== 1 && northEastNeighbor === 1 && northWestNeighbor === 1 && southEastNeighbor !== 1 
+                        ){
+                             newMatrix[row][col].neighbor = 12; 
+                             continue;
+                        }
+                        if(eastNeighbor === 1 && westNeighbor === 1 && southNeighbor === 1 && northNeighbor === 1 && 
+                            southWestNeighbor === 1 && northEastNeighbor !== 1 && northWestNeighbor !== 1 && southEastNeighbor !== 1 
+                        ){
+                             newMatrix[row][col].neighbor = 11; 
+                             continue;
+                        }
+                        if(eastNeighbor === 1 && westNeighbor === 1 && southNeighbor === 1 && northNeighbor === 1 && 
+                            southWestNeighbor === 1 && northEastNeighbor === 1 && northWestNeighbor === 1 && southEastNeighbor === 1 
+                        ){
+                             newMatrix[row][col].neighbor = 10; 
+                             continue;
+                         }
+                        if(northNeighbor === 1 && southNeighbor === 1 &&  westNeighbor !== 1 && westNeighbor !== 9 && eastNeighbor === 1 && southEastNeighbor !== 1){
+                            newMatrix[row][col].neighbor = 8; 
+                            continue;
+                        }
+                        if (eastNeighbor === 9 && westNeighbor === 1 && southWestNeighbor !== 1 && southNeighbor === 1 ) { 
                             newMatrix[row][col].neighbor = 4 ; //conrner number one  
                             continue;
                         }
-                        if (eastNeighbor === 1 && westNeighbor !== 1 && southEastNeighbor !== 1 && southNeighbor === 1) { 
+                        
+                        if (eastNeighbor === 1 && westNeighbor === 9 && southEastNeighbor !== 1 && southNeighbor === 1) { 
                             newMatrix[row][col].neighbor = 2 ; //conrner number one  
                             continue;
                         }
-                        if(northNeighbor === 1 && southNeighbor === 1 && westNeighbor !== 9 && westNeighbor !== 1 ){
+                        if (eastNeighbor === 1 && westNeighbor !== 1 && southEastNeighbor !== 1 && southNeighbor === 1) { 
+                            newMatrix[row][col].neighbor = 22 ; //conrner number one  
+                            continue;
+                        }
+                        if(northNeighbor === 1 && southNeighbor === 1 && westNeighbor !== 9 && westNeighbor !== 1 && eastNeighbor === 1){
+                            newMatrix[row][col].neighbor = 9; 
+                            continue;
+                        }
+                        if(southNeighbor === 1 && westNeighbor !== 9 && westNeighbor !== 1){
                             newMatrix[row][col].neighbor = 3; 
+                            continue;
+                        }
+                        if(southNeighbor === 9){
+                            newMatrix[row][col].neighbor = 19; 
                             continue;
                         }
                         if (southNeighbor !== 1) {
                             newMatrix[row][col].neighbor = 1; 
                             continue;
                         }
-                        if(northNeighbor !==1 ){
+                        if(northNeighbor !==1 && eastNeighbor === 1 && westNeighbor === 1 && southNeighbor === 1 && southEastNeighbor === 1 && southWestNeighbor === 1){
                             newMatrix[row][col].neighbor = 5; 
                             continue;
                         }
@@ -81,9 +162,21 @@ const Terrain = () => {
                             newMatrix[row][col].neighbor = 6; 
                             continue;
                         }
-                    }
-            
-                    
+                        if(eastNeighbor === 1 && westNeighbor === 1 && southNeighbor === 1 && southEastNeighbor !== 1 && southWestNeighbor !== 1){
+                            newMatrix[row][col].neighbor = 7; 
+                            continue;
+                        }
+                        if(eastNeighbor === 1 && westNeighbor === 1 && southNeighbor === 1 && southWestNeighbor !== 1){
+                            newMatrix[row][col].neighbor = 18; 
+                            continue;
+                        }
+                        if(eastNeighbor !== 1){
+                            newMatrix[row][col].neighbor = 16; 
+                            continue;
+                        }
+                        
+                        
+                    }        
                     if (currentId === 0 && northNeighbor === 1) {
                         newMatrix[row][col].neighbor = 9;
                         continue;
