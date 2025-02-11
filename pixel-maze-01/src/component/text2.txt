@@ -7,8 +7,8 @@ id : 0 : display nothing since it is a terrain background ==> default area to mo
 if north = 1 ; new block 
 
 
-nigbor : 0 nothing , 1 north , 2 south , 3 east , 4 west 
-/*Lava*/
+neighbor : NORTH 1 , SOUTH 2 , EAST 3 , WEST 4 ,  
+/*poisen water*/
 id : 2 : create on paint app + 2 versions for animation 
 
 /*skeleton*/
@@ -144,3 +144,97 @@ const Terrain = () => {
 };
 
 export default Terrain;
+
+
+
+
+if (currentId === 1) {
+                        if(eastNeighbor === 1 && westNeighbor === 1 && southNeighbor === 1 && northNeighbor !== 1 &&
+                            southWestNeighbor === 1 && northEastNeighbor !== 1 && northWestNeighbor !== 1 && southEastNeighbor !== 1){
+                            newMatrix[row][col].neighbor = 17;
+                            continue;
+                        }
+                        if(eastNeighbor !== 1 && westNeighbor === 1 && southNeighbor !== 1 && northNeighbor === 1 &&
+                            southWestNeighbor !== 1 && northEastNeighbor !== 1 && southEastNeighbor !== 1){
+                            newMatrix[row][col].neighbor = 15;
+                            continue;
+                        }
+                        if(eastNeighbor === 1 && westNeighbor !== 1 && southNeighbor === 1 && northNeighbor !== 1 &&
+                            southWestNeighbor !== 1 && northEastNeighbor !== 1 && northWestNeighbor !== 1 && southEastNeighbor === 1){
+                            newMatrix[row][col].neighbor = 9;
+                            continue;
+                        }
+                        if(eastNeighbor !== 1 && westNeighbor === 1 && southNeighbor === 1 && northNeighbor !== 1 &&
+                            southWestNeighbor !== 1 && northEastNeighbor !== 1 && northWestNeighbor !== 1 && southEastNeighbor !== 1){
+                            newMatrix[row][col].neighbor = 14;
+                            continue;
+                        }
+                        if(
+                            eastNeighbor === 1 && westNeighbor !== 1 && southNeighbor !== 1 && northNeighbor === 1 && 
+                            southWestNeighbor !== 1 && southWestNeighbor !== 9 
+                        ){
+                            newMatrix[row][col].neighbor = 13; 
+                            continue;
+                        }
+                        if(
+                            eastNeighbor !== 1 && westNeighbor === 1 && southNeighbor !== 1 && northNeighbor === 1 && 
+                            southWestNeighbor !== 1 && northEastNeighbor === 1 && northWestNeighbor === 1 && southEastNeighbor !== 1 
+                        ){
+                             newMatrix[row][col].neighbor = 12; 
+                             continue;
+                        }
+                        if(eastNeighbor === 1 && westNeighbor === 1 && southNeighbor === 1 && northNeighbor === 1 && 
+                            southWestNeighbor === 1 && northEastNeighbor !== 1 && northWestNeighbor !== 1 && southEastNeighbor !== 1 
+                        ){
+                             newMatrix[row][col].neighbor = 11; 
+                             continue;
+                        }
+                        if(eastNeighbor === 1 && westNeighbor === 1 && southNeighbor === 1 && northNeighbor === 1 && 
+                            southWestNeighbor === 1 && northEastNeighbor === 1 && northWestNeighbor === 1 && southEastNeighbor === 1 
+                        ){
+                             newMatrix[row][col].neighbor = 10; 
+                             continue;
+                         }
+                        if(northNeighbor === 1 && southNeighbor === 1 &&  westNeighbor !== 1 && westNeighbor !== 9 && eastNeighbor === 1 && southEastNeighbor !== 1){
+                            newMatrix[row][col].neighbor = 8; 
+                            continue;
+                        }
+                        if (eastNeighbor === 9 && westNeighbor === 1 && southWestNeighbor !== 1 && southNeighbor === 1 ) { 
+                            newMatrix[row][col].neighbor = 4 ; //conrner number one  
+                            continue;
+                        }
+                        if (eastNeighbor === 1 && westNeighbor !== 1 && southEastNeighbor !== 1 && southNeighbor === 1) { 
+                            newMatrix[row][col].neighbor = 2 ; //conrner number one  
+                            continue;
+                        }
+                        if(northNeighbor === 1 && southNeighbor === 1 && westNeighbor !== 9 && westNeighbor !== 1 && eastNeighbor === 1){
+                            newMatrix[row][col].neighbor = 9; 
+                            continue;
+                        }
+                        if(northNeighbor === 1 && southNeighbor === 1 && westNeighbor !== 9 && westNeighbor !== 1){
+                            newMatrix[row][col].neighbor = 3; 
+                            continue;
+                        }
+                        if (southNeighbor !== 1) {
+                            newMatrix[row][col].neighbor = 1; 
+                            continue;
+                        }
+                        if(northNeighbor !==1 && eastNeighbor === 1 && westNeighbor === 1 && southNeighbor === 1 && southEastNeighbor === 1 && southWestNeighbor === 1){
+                            newMatrix[row][col].neighbor = 5; 
+                            continue;
+                        }
+                        if(eastNeighbor !== 1 && northNeighbor === 1 && southNeighbor === 1 && westNeighbor !== 1){
+                            newMatrix[row][col].neighbor = 6; 
+                            continue;
+                        }
+                        if(eastNeighbor === 1 && westNeighbor === 1 && southNeighbor === 1 && southEastNeighbor !== 1 && southWestNeighbor !== 1){
+                            newMatrix[row][col].neighbor = 7; 
+                            continue;
+                        }
+                        if(eastNeighbor !== 1){
+                            newMatrix[row][col].neighbor = 16; 
+                            continue;
+                        }
+                        
+                        
+                    }   

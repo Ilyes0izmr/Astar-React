@@ -6,7 +6,8 @@ body, html {
     display: flex;
     justify-content: center; 
     align-items: center;
-    background-color: #171717; 
+    background-color: rgb(5, 33, 45); 
+   
 }
   
 .terrain {
@@ -25,8 +26,8 @@ body, html {
 }
 
 .grid-cell {
-    width: 10px;
-    height: 10px;
+    width: 45px;
+    height: 45px;
     border: 0px solid #707070 ; 
     position: relative;
 }
