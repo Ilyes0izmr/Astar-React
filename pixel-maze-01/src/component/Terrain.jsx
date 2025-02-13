@@ -1,66 +1,42 @@
+
 import { useState, useEffect } from "react";
 import "./Terrain.css";
 import TerrainLayers from "./TerrainLayers";
 import ASTAR from "./ASTAR";
 
 const Terrain = () => {
-    const size = 15; 
-    const [grid, setGrid] = useState([]);
+    const size = 15;
+    const [grid, setGrid] = useState(Array(size).fill().map(() => Array(size).fill({ id: 0, neighbor: 0 })));
 
     useEffect(() => {
         const generateGrid = () => {
             let newMatrix = Array.from({ length: size }, () =>
-                Array.from({ length: size }, () => ({
-                    id: 0,
-                    neighbor: 0, 
-                }))
+                Array.from({ length: size }, () => ({ id: 0, neighbor: 0 }))
             );
 
-            /*for (let i = 0; i < size; i++) {
-                for (let j = 0; j < size; j++) {
-                    const value = Math.floor(Math.random() * 3) + 1; // random 1, 2, or 3 for the block id
-                    newMatrix[i][j].id = value;
-                
-                }
-            }*/
-                
-            /*NUMBERS : 
-            0 | normal terrain (Grass)
-            1 | WALL (you cant pass through) 
-            2 | coin (cost nothing +2 of energy)
-            3 | mashroom (cost +2 from energy)
-            4 | SKULL (cost +3)  
-            5 | my character 
-            6 | distination 
-            7 | bests path 
-            
-            */
             const staticPattern = [
                 [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
                 [0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1],
-                [0, 0, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0, 0, 1],
+                [0, 0, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 0, 0, 1],
                 [0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 0, 1],
-                [0, 0, 7, 0, 0, 1, 1, 1, 0, 1, 1, 1, 0, 0, 1],
-                [1, 0, 0, 0, 5, 1, 1, 1, 0, 0, 1, 0, 0, 0, 1],
-                [1, 1, 7, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 1],
-                [1, 0, 1, 0, 3, 1, 1, 1, 0, 1, 1, 0, 1, 0, 1],
-                [1, 1, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0, 0, 1],
+                [0, 0, 7, 0, 2, 1, 1, 1, 0, 1, 1, 1, 0, 0, 1],
+                [1, 0, 0, 3, 5, 4, 1, 1, 0, 0, 1, 0, 0, 0, 1],
+                [1, 1, 7, 1, 0, 0, 4, 4, 0, 0, 0, 0, 1, 1, 1],
+                [1, 0, 1, 1, 3, 3, 2, 1, 0, 1, 1, 0, 1, 0, 1],
+                [1, 1, 1, 1, 4, 3, 0, 1, 0, 0, 1, 0, 0, 0, 1],
                 [1, 0, 0, 1, 0, 1, 1, 2, 0, 0, 0, 0, 0, 0, 1],
-                [1, 0, 1, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-                [1, 1, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1],
-                [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-                [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 6, 1],
+                [1, 0, 0, 4, 4, 4, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+                [1, 1, 0, 0, 4, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1],
+                [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 6, 1],
+                [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
                 [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
             ];
 
-            
             for (let row = 0; row < size; row++) {
                 for (let col = 0; col < size; col++) {
                     newMatrix[row][col].id = staticPattern[row][col];
                 }
             }
-
-            
             for (let row = 0; row < size; row++) {
                 for (let col = 0; col < size; col++) {
                     const currentId = newMatrix[row][col].id;
@@ -197,20 +173,29 @@ const Terrain = () => {
                     newMatrix[row][col].neighbor = 0; 
                 }
             }
-
             setGrid(newMatrix);
         };
 
         generateGrid();
     }, []);
 
+    // Extract matrix containing only terrain IDs for ASTAR
     const matrix = grid.map(row => row.map(cell => cell.id));
-    console.log(matrix);
+
     return (
         <div>
             <h2>Terrain</h2>
-            <TerrainLayers grid={grid} />
-            <ASTAR matrix={matrix} energyBar={10} start={[5, 4]} destination={[13,13]} />
+            {grid.length > 0 && (
+                <>
+                    <TerrainLayers grid={grid} />
+                    <ASTAR 
+                        matrix={matrix} 
+                        energyBar={10} 
+                        start={[5, 4]} 
+                        destination={[12, 10]} 
+                    />
+                </>
+            )}
         </div>
     );
 };
