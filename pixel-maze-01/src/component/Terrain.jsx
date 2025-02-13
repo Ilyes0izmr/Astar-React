@@ -190,17 +190,17 @@ const Terrain = () => {
                 <>
                     <TerrainLayers grid={grid} />
                     <ASTAR 
-                        matrix={matrix} 
+                        matrix={matrix}  // Numeric matrix for A*
+                        grid={grid}  // Full object for display
                         energyBar={10} 
                         start={[5, 4]} 
                         destination={[12, 10]} 
-                       
                     />
-                    
                 </>
             )}
         </div>
     );
+    
 };
 
 export default Terrain;

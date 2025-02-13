@@ -2,12 +2,13 @@ import { useEffect, useState } from "react";
 import PropTypes from "prop-types";
 import TerrainLayers from "./TerrainLayers";
 
-const ASTAR = ({ matrix, grid, energyBar, start, destination }) => {
+const ASTAR = ({ matrix, grid: initialGrid, energyBar, start, destination }) => {
   const size = matrix.length;
   const [path, setPath] = useState([]);
   const [outOfEnergy, setOutOfEnergy] = useState(false);
   const [isComplete, setIsComplete] = useState(false);
   const [isInvalid, setIsInvalid] = useState(false);
+  const [grid, setGrid] = useState(initialGrid);
 
   const isValidCell = (row, col) => {
     return row >= 0 && row < size && col >= 0 && col < size && matrix[row][col] !== 1;
@@ -91,12 +92,26 @@ const ASTAR = ({ matrix, grid, energyBar, start, destination }) => {
     if (result) {
       setPath(result);
       setIsComplete(matrix[result[result.length - 1][0]][result[result.length - 1][1]] === 6);
-
-      // Update the passed grid with path, except the destination cell
-      result.slice(0, -1).forEach(([r, c]) => {
-        grid[r][c].id = 7;
-        grid[r][c].neighbor = 0;
-      });
+      
+      let index = 0;
+      const interval = setInterval(() => {
+        if (index < result.length - 1) {
+          setGrid((prevGrid) => {
+            const newGrid = prevGrid.map((row, rowIndex) =>
+              row.map((cell, colIndex) => {
+                if (rowIndex === result[index][0] && colIndex === result[index][1]) {
+                  return { ...cell, id: 7, neighbor: 7 };
+                }
+                return cell;
+              })
+            );
+            return newGrid;
+          });
+          index++;
+        } else {
+          clearInterval(interval);
+        }
+      }, 1000);
     } else {
       setPath([]);
       setIsComplete(false);
@@ -112,7 +127,7 @@ const ASTAR = ({ matrix, grid, energyBar, start, destination }) => {
       {isInvalid && <p>❌ Invalid path (Hit two skulls in a row)</p>}
 
       {/* Display Grid */}
-      
+      <TerrainLayers grid={grid} />
     </div>
   );
 };
