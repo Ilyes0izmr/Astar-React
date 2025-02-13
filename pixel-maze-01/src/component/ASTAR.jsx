@@ -1,41 +1,48 @@
 import { useEffect, useState } from "react";
 import PropTypes from "prop-types";
 
-const ASTAR = ({ matrix, energyBar, start, destination }) => {
+const ASTAR = ({ matrix, energyBar, start, destination /*,setRESULT*/}) => {
+
   const size = matrix.length;
   const [path, setPath] = useState([]);
   const [outOfEnergy, setOutOfEnergy] = useState(false);
   const [isComplete, setIsComplete] = useState(false);
   const [isInvalid, setIsInvalid] = useState(false);
 
-  const isValidCell = (row, col) =>
-    row >= 0 && row < size && col >= 0 && col < size && matrix[row][col] !== 1;
+  const isValidCell = (row, col) => {
+    return row >= 0 && row < size && col >= 0 && col < size && matrix[row][col] !== 1; 
+  };
 
   const getCost = (cellValue) => {
     switch (cellValue) {
       case 0: return 0;
-      case 2: return 1;
+      case 2: return 1;  
       case 3: return 2;
       case 4: return 3;
       default: return 0;
     }
   };
 
-  const manhattanDistance = (r1, c1, r2, c2) =>
-    Math.abs(r1 - r2) + Math.abs(c1 - c2);
-
+  const manhattanDistance = (r1, c1, r2, c2) =>{
+    return Math.abs(r1 - r2) + Math.abs(c1 - c2);
+  } 
+    
   const findPath = (row, col, remainingEnergy, currentPath = [], visited = null, skullCount = 0) => {
-    if (!visited) {
+    /*inilizing the visited array*/
+    if (!visited){
       visited = Array.from({ length: size }, () => Array(size).fill(false));
     }
 
+    /*Base condition */
     if (matrix[row][col] === 6) {
       return [...currentPath, [row, col]];
     }
 
+    /*base condition 2 : if no valid cell  */
     if (!isValidCell(row, col) || remainingEnergy < 0) {
       return null;
     }
+
 
     currentPath.push([row, col]);
     visited[row][col] = true;
@@ -58,10 +65,10 @@ const ASTAR = ({ matrix, energyBar, start, destination }) => {
     }
 
     let neighbors = [
-      [row - 1, col],
-      [row, col + 1],
-      [row + 1, col],
-      [row, col - 1],
+      [row - 1,col],
+      [row, col+1],
+      [row + 1,col],
+      [row, col- 1],
     ];
 
     let validDirections = neighbors.filter(([r, c]) =>
@@ -89,6 +96,7 @@ const ASTAR = ({ matrix, energyBar, start, destination }) => {
     const result = findPath(start[0], start[1], energyBar);
     if (result) {
       setPath(result);
+      /*setRESULT({ path });*/
       setIsComplete(matrix[result[result.length - 1][0]][result[result.length - 1][1]] === 6);
     } else {
       setPath([]);
@@ -112,6 +120,7 @@ ASTAR.propTypes = {
   energyBar: PropTypes.number.isRequired,
   start: PropTypes.arrayOf(PropTypes.number).isRequired,
   destination: PropTypes.arrayOf(PropTypes.number).isRequired,
+  setRESULT: PropTypes.func.isRequired,
 };
 
 export default ASTAR;
