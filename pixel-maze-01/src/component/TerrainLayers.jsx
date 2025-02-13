@@ -7,16 +7,11 @@ const TerrainLayers = ({ grid }) => {
   
   const getColor = (id) => {
     switch (id) {
-      case 0:
-        return "rgb(56,216,142)" 
-      case 1:
-        return "#c0d470";
-      case 2:
-        return "#e8cfa6"; 
-      case 3:
-        return "#9bd4c3"; 
-      default:
-        return "white"; 
+      case 0: return "rgb(56,216,142)" 
+      case 1: return "#c0d470";
+      case 2: return "#e8cfa6"; 
+      case 3: return "#9bd4c3"; 
+      default: return "white"; 
     }
   };
 

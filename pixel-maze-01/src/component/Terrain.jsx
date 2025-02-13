@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import "./Terrain.css";
 import TerrainLayers from "./TerrainLayers";
+import ASTAR from "./ASTAR";
 
 const Terrain = () => {
     const size = 15; 
@@ -23,22 +24,32 @@ const Terrain = () => {
                 }
             }*/
                 
-
+            /*NUMBERS : 
+            0 | normal terrain (Grass)
+            1 | WALL (you cant pass through) 
+            2 | coin (cost nothing +2 of energy)
+            3 | mashroom (cost +2 from energy)
+            4 | SKULL (cost +3)  
+            5 | my character 
+            6 | distination 
+            7 | bests path 
+            
+            */
             const staticPattern = [
                 [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
                 [0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1],
                 [0, 0, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0, 0, 1],
                 [0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 0, 1],
-                [0, 0, 1, 0, 0, 1, 1, 1, 0, 1, 1, 1, 0, 0, 1],
-                [1, 0, 0, 0, 0, 1, 1, 1, 0, 0, 1, 0, 0, 0, 1],
-                [1, 1, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 1],
-                [1, 0, 1, 0, 1, 1, 1, 1, 0, 1, 1, 0, 1, 0, 1],
+                [0, 0, 7, 0, 0, 1, 1, 1, 0, 1, 1, 1, 0, 0, 1],
+                [1, 0, 0, 0, 5, 1, 1, 1, 0, 0, 1, 0, 0, 0, 1],
+                [1, 1, 7, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 1],
+                [1, 0, 1, 0, 3, 1, 1, 1, 0, 1, 1, 0, 1, 0, 1],
                 [1, 1, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0, 0, 1],
-                [1, 0, 0, 1, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1],
-                [1, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+                [1, 0, 0, 1, 0, 1, 1, 2, 0, 0, 0, 0, 0, 0, 1],
+                [1, 0, 1, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 1],
                 [1, 1, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1],
-                [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1],
-                [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 1],
+                [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+                [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 6, 1],
                 [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
             ];
 
@@ -193,10 +204,13 @@ const Terrain = () => {
         generateGrid();
     }, []);
 
+    const matrix = grid.map(row => row.map(cell => cell.id));
+    console.log(matrix);
     return (
         <div>
             <h2>Terrain</h2>
             <TerrainLayers grid={grid} />
+            <ASTAR matrix={matrix} energyBar={10} start={[5, 4]} destination={[13,13]} />
         </div>
     );
 };
