@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import PropTypes from "prop-types";
-import TerrainLayers from "./TerrainLayers";
+import TerrainLayers from "./TerrainLayers"; // Import the TerrainLayers component
 
 const ASTAR = ({ matrix, grid, energyBar, start, destination }) => {
   const size = matrix.length;
@@ -8,6 +8,7 @@ const ASTAR = ({ matrix, grid, energyBar, start, destination }) => {
   const [outOfEnergy, setOutOfEnergy] = useState(false);
   const [isComplete, setIsComplete] = useState(false);
   const [isInvalid, setIsInvalid] = useState(false);
+  const [triggerUpdate, setTriggerUpdate] = useState(false); // Force re-render
 
   const isValidCell = (row, col) => {
     return row >= 0 && row < size && col >= 0 && col < size && matrix[row][col] !== 1;
@@ -87,20 +88,30 @@ const ASTAR = ({ matrix, grid, energyBar, start, destination }) => {
   };
 
   useEffect(() => {
-    const result = findPath(start[0], start[1], energyBar);
-    if (result) {
-      setPath(result);
-      setIsComplete(matrix[result[result.length - 1][0]][result[result.length - 1][1]] === 6);
+    const findAndAnimatePath = async () => {
+      const result = findPath(start[0], start[1], energyBar);
+      if (result) {
+        setPath(result);
+        setIsComplete(matrix[result[result.length - 1][0]][result[result.length - 1][1]] === 6);
 
-      // Update the passed grid with path, except the destination cell
-      result.slice(0, -1).forEach(([r, c]) => {
-        grid[r][c].id = 7;
-        grid[r][c].neighbor = 0;
-      });
-    } else {
-      setPath([]);
-      setIsComplete(false);
-    }
+        // Animate path update with 0.5s delay per step
+        for (let i = 1; i < result.length - 2; i++) {
+          const [r, c] = result[i];
+
+          await new Promise((resolve) => setTimeout(resolve, 500));
+
+          grid[r][c].id = 7; 
+          grid[r][c].neighbor = 0;
+
+          setTriggerUpdate((prev) => !prev); // Force React to detect the change
+        }
+      } else {
+        setPath([]);
+        setIsComplete(false);
+      }
+    };
+
+    findAndAnimatePath();
   }, [matrix, energyBar, start, destination]);
 
   return (
@@ -111,8 +122,8 @@ const ASTAR = ({ matrix, grid, energyBar, start, destination }) => {
       {isComplete && <p>✅ Path found!</p>}
       {isInvalid && <p>❌ Invalid path (Hit two skulls in a row)</p>}
 
-      {/* Display Grid */}
       
+      <TerrainLayers grid={grid} path={path.slice(1, -1)} />
     </div>
   );
 };

@@ -1,14 +1,12 @@
 
 import { useState, useEffect } from "react";
 import "./Terrain.css";
-import TerrainLayers from "./TerrainLayers";
 import ASTAR from "./ASTAR";
 
 
 const Terrain = () => {
     const size = 15;
     const [grid, setGrid] = useState(Array(size).fill().map(() => Array(size).fill({ id: 0, neighbor: 0 })));
-    const [RESULT, setRESULT] = useState({ path: [] }); // Store path as an object
     useEffect(() => {
         const generateGrid = () => {
             let newMatrix = Array.from({ length: size }, () =>
@@ -19,15 +17,15 @@ const Terrain = () => {
                 [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
                 [0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1],
                 [0, 0, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 0, 0, 1],
-                [0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 0, 1],
-                [0, 0, 7, 0, 2, 1, 1, 1, 0, 1, 1, 1, 0, 0, 1],
+                [0, 0, 0, 0, 1, 0, 0, 1, 0, 1, 0, 1, 0, 0, 1],
+                [0, 0, 0, 0, 2, 0, 1, 1, 0, 1, 1, 1, 0, 0, 1],
                 [1, 0, 0, 3, 5, 4, 1, 1, 0, 0, 1, 0, 0, 0, 1],
-                [1, 1, 7, 1, 0, 0, 4, 0, 0, 0, 0, 0, 1, 1, 1],
-                [1, 0, 1, 1, 3, 3, 2, 1, 0, 1, 1, 0, 1, 0, 1],
-                [1, 1, 1, 1, 4, 3, 0, 1, 0, 0, 1, 0, 0, 0, 1],
+                [1, 1, 1, 1, 0, 0, 3, 1, 0, 0, 0, 0, 1, 1, 1],
+                [1, 0, 1, 1, 0, 3, 2, 1, 0, 1, 1, 0, 1, 0, 1],
+                [1, 1, 1, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1],
                 [1, 0, 0, 1, 0, 1, 1, 2, 0, 0, 0, 0, 0, 0, 1],
-                [1, 0, 0, 4, 4, 4, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-                [1, 1, 0, 0, 4, 1, 1, 1, 1, 1, 0, 6, 1, 1, 1],
+                [1, 0, 0, 2, 0, 6, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+                [1, 1, 0, 0, 2, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1],
                 [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
                 [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
                 [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
@@ -179,8 +177,7 @@ const Terrain = () => {
 
         generateGrid();
     }, []);
-    //<PathAnimator grid={grid} path={RESULT.path} />
-    // Extract matrix containing only terrain IDs for ASTAR
+    
     const matrix = grid.map(row => row.map(cell => cell.id));
 
     return (
@@ -188,10 +185,9 @@ const Terrain = () => {
             <h2>Terrain</h2>
             {grid.length > 0 && (
                 <>
-                    <TerrainLayers grid={grid} />
                     <ASTAR 
-                        matrix={matrix}  // Numeric matrix for A*
-                        grid={grid}  // Full object for display
+                        matrix={matrix}  
+                        grid={grid}  
                         energyBar={10} 
                         start={[5, 4]} 
                         destination={[12, 10]} 

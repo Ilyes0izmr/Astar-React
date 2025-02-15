@@ -1,5 +1,6 @@
 import './App.css'
-import Terrain from './component/terrain'
+
+import Terrain from './component/Terrain'
 
 function App() {
   
