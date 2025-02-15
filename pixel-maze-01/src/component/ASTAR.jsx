@@ -49,11 +49,15 @@ const ASTAR = ({ matrix, grid, energyBar, start, destination }) => {
 
     if (newEnergy < 0) {
       setOutOfEnergy(true);
+      //setIsInvalid(true);
       return null;
     }
 
     if (matrix[row][col] === 4) {
       skullCount++;
+    }
+    else{
+      skullCount = 0 ;
     }
 
     if (skullCount >= 2) {
