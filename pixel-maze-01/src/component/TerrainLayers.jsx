@@ -1,32 +1,71 @@
 import { useState, useEffect } from "react";
 import PropTypes from "prop-types";
-
 import Path from "../assets/70.png";                 //the path image 
 import Heart from "../assets/heart.png";             // the energy bar  
 import BlackHeart from "../assets/black_heart.png";  //no energy 
 
-const TerrainLayers = ({ grid, path, energyStates }) => {
-  const [imagePaths, setImagePaths] = useState({});      
-  const [animatedPath, setAnimatedPath] = useState([]); // Track the animated path
-  const [healthIndicators, setHealthIndicators] = useState([]); // Track health indicators
-  const [noEnergyLeft, setNoEnergyLeft] = useState(false); // Track if energy runs out
-  const [noPathFound, setNoPathFound] = useState(false); // Track if no path is found
 
-  // Function to get the image name based on cell ID and neighbor
+/**
+ * this component does the visualization part and the animation (it suppose in the future hh )
+ * 
+ * @component
+ *
+ * @param {Object} [props.grid] - object that is representing the grid structure, it does contain teh following :                        
+ *                                - {number[][]} matrix - A 2D array where each cell represents a different block in the grid, where each cell contains:
+ *                                  - {number} id - the identifier for the block type.
+ *                                  - {number} neighbor - a single value representing the neighbor of the block.
+ * @see Terrain.jsx - for more details on how is the id and the nieghbor value is assigned
+ * 
+ * @param {array<[number,number]>} props.path coordination of the  path 
+ * @param {number} props.energyStates - a value represent the initial energy value
+ * 
+ * @returns {JSX.Element} - Returns a React componenet that renders the visualization 
+ * 
+ * @see ASTAR.jsx - forn more information on how is hte grid and the path is calculated see this 
+ * 
+ * @note : i need to fix this component 
+ * 1) the style should be in a diff css 
+ * 2) the health indicator somtimes does not work
+ * 3) sometime they do assign 5 with a nighbor and i dont remmeber i did allow this (hmmmmmmmmmmmmm ) 
+ * 
+ */
+const TerrainLayers = ({ grid, path, energyStates }) => {
+  const [imagePaths, setImagePaths] = useState({});        
+  const [animatedPath, setAnimatedPath] = useState([]); // tarck the animation path 
+  const [healthIndicators, setHealthIndicators] = useState([]); // track health visulazation
+  const [noEnergyLeft, setNoEnergyLeft] = useState(false); // to see if the energy is out 
+  const [noPathFound, setNoPathFound] = useState(false); // to se if hte path is not found 
+
+  /**
+   * 
+   * @param {number} id 
+   * @param {number} neighbor 
+   * @returns {string} the image name to render it   
+   */
   const getImageName = (id, neighbor) => {
     return `${id}${neighbor}`;
   };
 
-  // Function to get the content for a cell (image or background color)
+/**
+ * determines the content (image or background color) to display for a grid cell.
+ *
+ *this functions checks the value of the neighbor and the id to decide waht to dispaly as ana image 
+ *
+ * @function getCellContent
+ * @param {number} id - the ID of the cell, representing teh terrain`s type 
+ * @param {number} rowIndex  
+ * @param {number} colIndex 
+ * @param {number} neighbor 
+ * @returns {??} - return either an image or a css style (background color )
+ *
+ */
   const getCellContent = (id, rowIndex, colIndex, neighbor) => {
-    // Check if the cell is part of the animated path
-    const isAnimatedPathCell = animatedPath.some(([r, c]) => r === rowIndex && c === colIndex);
-    if (isAnimatedPathCell) {
-      // Return the path marker image (70.png) for animated path cells
+    const isAnimatedPathCell = animatedPath.some(([r, c]) => r === rowIndex && c === colIndex); //check if the cell is  a part of the path 
+    if (isAnimatedPathCell) { // if yes return 70.png (it is imported )
       return (
         <img
-          src={Path} // Path to your path marker image
-          alt="Path marker"
+          src={Path}
+          alt="valid Path"
           style={{
             width: "100%",
             height: "100%",
@@ -38,7 +77,8 @@ const TerrainLayers = ({ grid, path, energyStates }) => {
         />
       );
     }
-    // Default behavior: return the terrain image
+    
+    //otherwise return the image with teh image name  
     const imageName = getImageName(id, neighbor);
     const imagePath = imagePaths[imageName];
     if (imagePath) {
@@ -57,28 +97,25 @@ const TerrainLayers = ({ grid, path, energyStates }) => {
         />
       );
     }
-    // Fallback: return a background color
+    
+    //no valid id ? in case i missed some probabilites they are just alooot of pictures 
     switch (id) {
-      case 0:
-        return "rgb(56,216,142)";
-      case 1:
-        return "#c0d470";
-      case 2:
-        return "#e8cfa6";
-      case 3:
-        return "#9bd4c3";
-      default:
-        return "white";
+      case 0: return "rgb(56,216,142)";
+      case 1: return "#c0d470";
+      case 2: return "#e8cfa6";
+      case 3: return "#9bd4c3";
+      default: return "white";
     }
   };
 
-  // Load images dynamically
+  //load the images for teh terrain 
   useEffect(() => {
     const loadImages = async () => {
       const paths = {};
       for (let row of grid) {
         for (let cell of row) {
-          if (cell.id === 0 && !cell.neighbor) {
+          if (cell.id === 0 && !cell.neighbor) {  // welll here for better visualzation ,m i have 4 types of blocks for teh grass 
+            // so this methode helps me return a random one 
             const randomNeighbor = Math.floor(Math.random() * 4);
             cell.neighbor = randomNeighbor;
           }
@@ -99,56 +136,62 @@ const TerrainLayers = ({ grid, path, energyStates }) => {
     loadImages();
   }, [grid]);
 
-  // Animate the path step-by-step and update health indicators in parallel
+  //teh animation part
   useEffect(() => {
     // Reset states before starting the animation
     setNoEnergyLeft(false);
     setNoPathFound(false);
-
-    // Check if the path is empty
+  
+    // heck if the path is empty
     if (path.length === 0) {
-      setNoPathFound(true); // No path found
+      setNoPathFound(true); 
       return;
     }
-
+  
     if (energyStates.length > 0) {
       const animate = async () => {
         for (let i = 0; i < path.length; i++) {
           const currentEnergy = energyStates[i];
-
-          // Stop animation if energy runs out
+  
+          
+          console.log(`Step ${i}: Current Energy = ${currentEnergy}`);
+  
+          
           if (currentEnergy <= 0) {
             setNoEnergyLeft(true);
             break;
           }
-
-          // Update the animated path
+  
+          
           setAnimatedPath((prev) => [...prev, path[i]]);
-
-          // Update the health indicators based on the current energy level
-          const maxHealth = energyStates[0]; // Initial energy level
+  
+          
+          const maxHealth = energyStates[0]; 
           const newHealthIndicators = Array.from({ length: maxHealth }, (_, index) =>
             index < currentEnergy ? Heart : BlackHeart
           );
-
+  
+          
+          console.log(`Step ${i}: Health Indicators =`, newHealthIndicators);
+  
           setHealthIndicators(newHealthIndicators);
-
-          // Wait for 500ms before moving to the next step
-          await new Promise((resolve) => setTimeout(resolve, 500));
+  
+          
+          await new Promise((resolve) => setTimeout(resolve, 200));
         }
       };
-
+  
       animate();
     }
   }, [path, energyStates]);
 
   return (
     <div className="grid-container">
-      {/* Display messages */}
-      {noEnergyLeft && <p style={{ textAlign: "center", color: "red" }}>❌ No energy left!</p>}
-      {noPathFound && <p style={{ textAlign: "center", color: "red" }}>❌ No path found!</p>}
+      {/* display messages */}
+      {noEnergyLeft && <p style={{ textAlign: "center", color: "orange" }}>❌No energy left</p>}
+      {noPathFound && <p style={{ textAlign: "center", color: "red" }}>❌No path found</p>}
 
-      {/* Render health indicators */}
+      {/* eender health indicators */}
       {!noEnergyLeft && !noPathFound && (
         <div
           style={{
@@ -163,8 +206,8 @@ const TerrainLayers = ({ grid, path, energyStates }) => {
               src={indicator}
               alt={indicator === Heart ? "Heart" : "Black Heart"}
               style={{
-                width: "20px",
-                height: "20px",
+                width: "50px",
+                height: "50px",
                 margin: "0 5px",
               }}
             />
@@ -172,7 +215,7 @@ const TerrainLayers = ({ grid, path, energyStates }) => {
         </div>
       )}
 
-      {/* Render the grid */}
+      {/* render the grid */}
       {grid.map((row, rowIndex) => (
         <div key={rowIndex} className="grid-row">
           {row.map((cell, colIndex) => {
@@ -196,6 +239,7 @@ const TerrainLayers = ({ grid, path, energyStates }) => {
     </div>
   );
 };
+
 
 TerrainLayers.propTypes = {
   grid: PropTypes.arrayOf(
