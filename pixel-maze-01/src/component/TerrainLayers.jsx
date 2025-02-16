@@ -1,11 +1,16 @@
 import { useState, useEffect } from "react";
 import PropTypes from "prop-types";
-import Path from "../assets/70.png"; // Import the path marker image
 
-const TerrainLayers = ({ grid, path }) => {
-  const [imagePaths, setImagePaths] = useState({});
+import Path from "../assets/70.png";                 //the path image 
+import Heart from "../assets/heart.png";             // the energy bar  
+import BlackHeart from "../assets/black_heart.png";  //no energy 
+
+const TerrainLayers = ({ grid, path, energyStates }) => {
+  const [imagePaths, setImagePaths] = useState({});      
   const [animatedPath, setAnimatedPath] = useState([]); // Track the animated path
- 
+  const [healthIndicators, setHealthIndicators] = useState([]); // Track health indicators
+  const [noEnergyLeft, setNoEnergyLeft] = useState(false); // Track if energy runs out
+  const [noPathFound, setNoPathFound] = useState(false); // Track if no path is found
 
   // Function to get the image name based on cell ID and neighbor
   const getImageName = (id, neighbor) => {
@@ -16,7 +21,6 @@ const TerrainLayers = ({ grid, path }) => {
   const getCellContent = (id, rowIndex, colIndex, neighbor) => {
     // Check if the cell is part of the animated path
     const isAnimatedPathCell = animatedPath.some(([r, c]) => r === rowIndex && c === colIndex);
-
     if (isAnimatedPathCell) {
       // Return the path marker image (70.png) for animated path cells
       return (
@@ -34,7 +38,6 @@ const TerrainLayers = ({ grid, path }) => {
         />
       );
     }
-
     // Default behavior: return the terrain image
     const imageName = getImageName(id, neighbor);
     const imagePath = imagePaths[imageName];
@@ -54,7 +57,6 @@ const TerrainLayers = ({ grid, path }) => {
         />
       );
     }
-
     // Fallback: return a background color
     switch (id) {
       case 0:
@@ -80,7 +82,6 @@ const TerrainLayers = ({ grid, path }) => {
             const randomNeighbor = Math.floor(Math.random() * 4);
             cell.neighbor = randomNeighbor;
           }
-
           const imageName = getImageName(cell.id, cell.neighbor);
           if (!paths[imageName]) {
             try {
@@ -98,21 +99,80 @@ const TerrainLayers = ({ grid, path }) => {
     loadImages();
   }, [grid]);
 
-  // Animate the path step-by-step
+  // Animate the path step-by-step and update health indicators in parallel
   useEffect(() => {
-    if (path.length > 0) {
+    // Reset states before starting the animation
+    setNoEnergyLeft(false);
+    setNoPathFound(false);
+
+    // Check if the path is empty
+    if (path.length === 0) {
+      setNoPathFound(true); // No path found
+      return;
+    }
+
+    if (energyStates.length > 0) {
       const animate = async () => {
         for (let i = 0; i < path.length; i++) {
-          setAnimatedPath((prev) => [...prev, path[i]]); // Add the next step to the animated path
-          await new Promise((resolve) => setTimeout(resolve, 500)); // Delay for 500ms
+          const currentEnergy = energyStates[i];
+
+          // Stop animation if energy runs out
+          if (currentEnergy <= 0) {
+            setNoEnergyLeft(true);
+            break;
+          }
+
+          // Update the animated path
+          setAnimatedPath((prev) => [...prev, path[i]]);
+
+          // Update the health indicators based on the current energy level
+          const maxHealth = energyStates[0]; // Initial energy level
+          const newHealthIndicators = Array.from({ length: maxHealth }, (_, index) =>
+            index < currentEnergy ? Heart : BlackHeart
+          );
+
+          setHealthIndicators(newHealthIndicators);
+
+          // Wait for 500ms before moving to the next step
+          await new Promise((resolve) => setTimeout(resolve, 500));
         }
       };
+
       animate();
     }
-  }, [path]);
+  }, [path, energyStates]);
 
   return (
     <div className="grid-container">
+      {/* Display messages */}
+      {noEnergyLeft && <p style={{ textAlign: "center", color: "red" }}>❌ No energy left!</p>}
+      {noPathFound && <p style={{ textAlign: "center", color: "red" }}>❌ No path found!</p>}
+
+      {/* Render health indicators */}
+      {!noEnergyLeft && !noPathFound && (
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            marginBottom: "10px",
+          }}
+        >
+          {healthIndicators.map((indicator, index) => (
+            <img
+              key={index}
+              src={indicator}
+              alt={indicator === Heart ? "Heart" : "Black Heart"}
+              style={{
+                width: "20px",
+                height: "20px",
+                margin: "0 5px",
+              }}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Render the grid */}
       {grid.map((row, rowIndex) => (
         <div key={rowIndex} className="grid-row">
           {row.map((cell, colIndex) => {
@@ -147,6 +207,7 @@ TerrainLayers.propTypes = {
     ).isRequired
   ).isRequired,
   path: PropTypes.arrayOf(PropTypes.arrayOf(PropTypes.number)).isRequired,
+  energyStates: PropTypes.arrayOf(PropTypes.number).isRequired,
 };
 
 export default TerrainLayers;

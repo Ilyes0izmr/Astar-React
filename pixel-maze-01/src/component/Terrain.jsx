@@ -322,7 +322,7 @@ const Terrain = () => {
                 <ASTAR
                     matrix={grid.map(row => row.map(cell => cell.id))}
                     grid={grid}
-                    energyBar={100}
+                    energyBar={10}
                     start={start}
                     destination={destination}
                 />
