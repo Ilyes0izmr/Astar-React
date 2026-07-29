@@ -1,0 +1,437 @@
+/*
+ * Interface chrome: panels, buttons, cards, the HUD and the two screen layouts.
+ *
+ * Every element here follows the same construction - flat fill, 2px black
+ * border, hard offset shadow, square corners. That is deliberately monotonous.
+ * The spec wants each panel to read like an inventory window from a handheld
+ * RPG, and consistency is what sells it.
+ *
+ * See instruction.md - "UI Principles", "Buttons", "HUD Layout".
+ */
+
+/* ------------------------------------------------------------------ panels */
+
+.panel {
+  background: var(--bg);
+  border: var(--border) solid var(--black);
+  box-shadow: var(--shadow);
+  padding: var(--u);
+}
+
+.panel__title {
+  font-size: var(--text-panel);
+  color: var(--black);
+  margin-bottom: var(--u);
+  text-align: center;
+}
+
+/* The bracketed frame from the reference screens: corner ticks and a dotted
+   rule, rather than a closed box. */
+.frame {
+  position: relative;
+  padding: var(--u2);
+}
+
+.frame::before,
+.frame::after {
+  content: '';
+  position: absolute;
+  width: var(--u3);
+  height: var(--u3);
+  border: var(--border) solid var(--black);
+}
+
+.frame::before {
+  top: 0;
+  left: 0;
+  border-right: none;
+  border-bottom: none;
+}
+
+.frame::after {
+  bottom: 0;
+  right: 0;
+  border-left: none;
+  border-top: none;
+}
+
+/* ----------------------------------------------------------------- buttons */
+
+.btn {
+  font-family: var(--font);
+  font-size: var(--text-button);
+  color: var(--black);
+  background: var(--bg);
+  border: var(--border) solid var(--black);
+  box-shadow: var(--shadow-sm);
+  padding: var(--u) var(--u2);
+  cursor: pointer;
+  text-transform: uppercase;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--u);
+  /* Snappy, not smooth. A long easing curve would feel modern. */
+  transition: transform 60ms steps(2), box-shadow 60ms steps(2);
+  user-select: none;
+  white-space: nowrap;
+}
+
+.btn:hover:not(:disabled) {
+  background: var(--light);
+}
+
+/* Pressed buttons shift down two pixels and lose their shadow, so the button
+   looks like it has physically travelled into the panel. */
+.btn:active:not(:disabled),
+.btn--on {
+  transform: translate(2px, 2px);
+  box-shadow: none;
+  background: var(--mid);
+  color: var(--bg);
+}
+
+.btn:disabled {
+  color: var(--mid);
+  border-color: var(--mid);
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+.btn:focus-visible {
+  outline: var(--border) solid var(--dark);
+  outline-offset: 2px;
+}
+
+.btn--wide {
+  width: 100%;
+  justify-content: center;
+}
+
+.btn--primary {
+  background: var(--dark);
+  color: var(--bg);
+}
+
+.btn--primary:hover:not(:disabled) {
+  background: var(--black);
+}
+
+/* ------------------------------------------------------------- main  menu */
+
+.menu {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--u3);
+  padding: var(--u3);
+  overflow-y: auto;
+}
+
+.menu__title {
+  font-size: var(--text-title);
+  text-align: center;
+  line-height: 2;
+  margin: 0;
+}
+
+.menu__subtitle {
+  font-size: var(--text-small);
+  color: var(--dark);
+  text-align: center;
+  margin: 0;
+}
+
+.menu__cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: var(--u2);
+  width: min(760px, 100%);
+}
+
+/* Algorithm cards. Selected gets a dark border, a darker fill and lifts. */
+.card {
+  background: var(--bg);
+  border: var(--border) solid var(--mid);
+  box-shadow: var(--shadow-sm);
+  padding: var(--u2) var(--u);
+  text-align: center;
+  cursor: pointer;
+  font-family: var(--font);
+  color: var(--black);
+  transition: transform 60ms steps(2);
+}
+
+.card:hover {
+  /* Hover translates upward by two pixels. */
+  transform: translateY(-2px);
+}
+
+.card--on {
+  border-color: var(--black);
+  background: var(--light);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow);
+}
+
+.card__label {
+  font-size: var(--text-panel);
+  display: block;
+  margin-bottom: var(--u);
+}
+
+.card__tagline {
+  font-size: var(--text-small);
+  color: var(--dark);
+  display: block;
+}
+
+.menu__detail {
+  font-size: var(--text-small);
+  color: var(--dark);
+  text-align: center;
+  min-height: calc(var(--u3));
+  max-width: 640px;
+  line-height: 2;
+}
+
+.menu__actions {
+  display: flex;
+  gap: var(--u2);
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.menu__seed {
+  display: flex;
+  align-items: center;
+  gap: var(--u);
+  font-size: var(--text-small);
+  color: var(--dark);
+}
+
+.input {
+  font-family: var(--font);
+  font-size: var(--text-button);
+  background: var(--bg);
+  border: var(--border) solid var(--black);
+  color: var(--black);
+  padding: var(--u);
+  width: 100px;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+/* ------------------------------------------------------------------- game */
+
+.game {
+  height: 100%;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: var(--u);
+  padding: var(--u);
+}
+
+.hud {
+  display: flex;
+  align-items: center;
+  gap: var(--u2);
+  flex-wrap: wrap;
+  padding: var(--u) var(--u2);
+}
+
+.hud__stat {
+  font-size: var(--text-small);
+  color: var(--dark);
+  white-space: nowrap;
+}
+
+.hud__stat b {
+  color: var(--black);
+  font-weight: normal;
+}
+
+.hud__spacer {
+  flex: 1;
+}
+
+.hud__flag {
+  font-size: var(--text-small);
+  border: var(--border) solid var(--black);
+  padding: 2px var(--u);
+}
+
+.hud__flag--bad {
+  background: var(--dark);
+  color: var(--bg);
+}
+
+/* The world fills whatever is left, with the minimap floating over it. */
+.stage {
+  position: relative;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.world {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.world__canvas {
+  border: var(--border) solid var(--black);
+  box-shadow: var(--shadow);
+  cursor: crosshair;
+}
+
+.minimap {
+  position: absolute;
+  top: 0;
+  right: 0;
+  padding: var(--u);
+}
+
+.minimap__canvas {
+  border: var(--border) solid var(--black);
+}
+
+/* Floats over the world rather than pushing the layout around, so a warning
+   appearing mid-edit does not shift the map under the cursor. */
+.hud__warning {
+  position: absolute;
+  bottom: var(--u);
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+/* ---------------------------------------------------------------- toolbar */
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--u2);
+  flex-wrap: wrap;
+  padding: var(--u) var(--u2);
+}
+
+.toolbar__group {
+  display: flex;
+  align-items: center;
+  gap: var(--u);
+}
+
+.toolbar__label {
+  font-size: var(--text-small);
+  color: var(--dark);
+}
+
+/* Brush swatches are square icon buttons. */
+.swatch {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  background: var(--bg);
+  border: var(--border) solid var(--mid);
+  cursor: pointer;
+  padding: 0;
+}
+
+.swatch:hover {
+  border-color: var(--black);
+}
+
+.swatch--on {
+  border-color: var(--black);
+  background: var(--light);
+  box-shadow: inset 0 0 0 2px var(--bg);
+}
+
+/* ----------------------------------------------------------------- slider */
+
+/* Built from the same two pixels as everything else: a flat track and a square
+   knob, both hard-edged. */
+.slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 120px;
+  height: 12px;
+  background: var(--light);
+  border: var(--border) solid var(--black);
+  cursor: pointer;
+}
+
+.slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 10px;
+  height: 16px;
+  background: var(--dark);
+  border: var(--border) solid var(--black);
+  cursor: pointer;
+}
+
+.slider::-moz-range-thumb {
+  width: 10px;
+  height: 16px;
+  background: var(--dark);
+  border: var(--border) solid var(--black);
+  border-radius: 0;
+  cursor: pointer;
+}
+
+/* ----------------------------------------------------------------- hearts */
+
+.hearts {
+  display: flex;
+  gap: 2px;
+  align-items: center;
+}
+
+/* --------------------------------------------------------------- compare */
+
+.compare {
+  position: absolute;
+  inset: 0;
+  background: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--u2);
+}
+
+.compare__inner {
+  max-width: 640px;
+  width: 100%;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-small);
+}
+
+.table th,
+.table td {
+  border: var(--border) solid var(--black);
+  padding: var(--u);
+  text-align: left;
+}
+
+.table th {
+  background: var(--light);
+}
+
+.table tr[data-best='1'] td {
+  background: var(--light);
+}
+
+.table td[data-dim='1'] {
+  color: var(--mid);
+}

@@ -1,0 +1,21 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "pathfinder",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "--prefix",
+        "pixel-maze-01",
+        "run",
+        "dev",
+        "--",
+        "--port",
+        "5180",
+        "--strictPort"
+      ],
+      "port": 5180,
+      "autoPort": false
+    }
+  ]
+}

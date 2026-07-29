@@ -1,0 +1,93 @@
+/*
+ * Design tokens.
+ *
+ * The five palette colors and the typographic scale from the art direction
+ * spec, plus the global rules that keep the whole document pixel-crisp. Nothing
+ * in this file is decorative - every rule here exists to stop the browser from
+ * doing something smooth.
+ *
+ * See instruction.md - "Color Palette", "Typography", "UI Principles".
+ */
+
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+:root {
+  /* The complete palette. There is no sixth color. */
+  --bg: #d7d1c3;
+  --light: #b8b4a7;
+  --mid: #7a7772;
+  --dark: #44413f;
+  --black: #262626;
+
+  --font: 'Press Start 2P', 'Courier New', monospace;
+
+  /* Type scale, straight from the spec. */
+  --text-title: 16px;
+  --text-panel: 12px;
+  --text-button: 10px;
+  --text-small: 8px;
+
+  /* Everything lays out on an 8px grid. */
+  --u: 8px;
+  --u2: 16px;
+  --u3: 24px;
+
+  --border: 2px;
+  /* The offset shadow that gives every panel its stamped-out look. There is no
+     blur radius on purpose - a soft shadow would break the illusion instantly. */
+  --shadow: 4px 4px 0 var(--dark);
+  --shadow-sm: 2px 2px 0 var(--dark);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  /* Square corners, everywhere, with no exceptions. */
+  border-radius: 0 !important;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--black);
+  font-family: var(--font);
+  font-size: var(--text-button);
+  line-height: 1.6;
+  letter-spacing: 0.02em;
+
+  /* Text must never be anti-aliased. Between them these cover the engines that
+     let you turn it off at all; the rest simply ignore the request. */
+  -webkit-font-smoothing: none;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: geometricPrecision;
+
+  overflow: hidden;
+}
+
+/* Nearest-neighbour scaling for every canvas in the app. Without this the
+   browser bilinearly interpolates on upscale and the pixel art turns to mush. */
+canvas {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  display: block;
+}
+
+/* The spec allows only subtle motion, and a user who has asked the system for
+   less motion should get none of it. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
