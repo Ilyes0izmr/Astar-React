@@ -1,10 +1,15 @@
 /*
  * Design tokens.
  *
- * The five palette colors and the typographic scale from the art direction
- * spec, plus the global rules that keep the whole document pixel-crisp. Nothing
- * in this file is decorative - every rule here exists to stop the browser from
- * doing something smooth.
+ * The palette values here are only the *midday defaults*. At runtime
+ * `applyStage()` in core/palette.js overwrites these same custom properties on
+ * :root every time the time-of-day slider moves, so the whole interface changes
+ * hour along with the map it frames. That is why every rule in ui.css is
+ * written against the variables and never against a literal color - a hardcoded
+ * hex anywhere below is a panel that will stay stuck at noon after dark.
+ *
+ * Everything else in this file exists to stop the browser doing something
+ * smooth. Square corners, no anti-aliasing, no blur, no interpolation.
  *
  * See instruction.md - "Color Palette", "Typography", "UI Principles".
  */
@@ -12,12 +17,14 @@
 @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
 
 :root {
-  /* The complete palette. There is no sixth color. */
+  /* Midday. Overwritten at runtime - see the note above. */
   --bg: #d7d1c3;
   --light: #b8b4a7;
   --mid: #7a7772;
   --dark: #44413f;
   --black: #262626;
+  --backdrop: #d7d1c3;
+  --glow: #d7d1c3;
 
   --font: 'Press Start 2P', 'Courier New', monospace;
 
@@ -37,13 +44,17 @@
      blur radius on purpose - a soft shadow would break the illusion instantly. */
   --shadow: 4px 4px 0 var(--dark);
   --shadow-sm: 2px 2px 0 var(--dark);
+
+  /* Chamfer depth for the cut-corner button shapes. */
+  --cut: 6px;
 }
 
 *,
 *::before,
 *::after {
   box-sizing: border-box;
-  /* Square corners, everywhere, with no exceptions. */
+  /* Square corners, everywhere, with no exceptions. Shape variation comes from
+     clip-path instead, which stays hard-edged at any size. */
   border-radius: 0 !important;
 }
 
@@ -56,7 +67,7 @@ body,
 }
 
 body {
-  background: var(--bg);
+  background: var(--backdrop);
   color: var(--black);
   font-family: var(--font);
   font-size: var(--text-button);
@@ -64,7 +75,7 @@ body {
   letter-spacing: 0.02em;
 
   /* Text must never be anti-aliased. Between them these cover the engines that
-     let you turn it off at all; the rest simply ignore the request. */
+     let you turn it off at all; the rest ignore the request. */
   -webkit-font-smoothing: none;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: geometricPrecision;
@@ -78,6 +89,11 @@ canvas {
   image-rendering: pixelated;
   image-rendering: crisp-edges;
   display: block;
+}
+
+::selection {
+  background: var(--dark);
+  color: var(--bg);
 }
 
 /* The spec allows only subtle motion, and a user who has asked the system for

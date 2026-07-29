@@ -1,73 +1,36 @@
 import PropTypes from 'prop-types';
-import { ALGORITHM_BY_ID } from '../core/algorithms/index.js';
-import { PHASE } from '../core/playback.js';
-import Hearts from './Hearts.jsx';
+import { runOutcome } from './download.js';
 
 /**
- * The status bar.
+ * The status flag that floats over the board.
  *
- * Deliberately sparse - algorithm, two counters, the energy bar and a frame
- * rate. The spec asks for minimal information that stays readable, so anything
- * that would only matter to someone debugging the search stays out.
+ * Everything this panel used to carry - the counters, the energy bar, the frame
+ * rate - now lives in the navbar and the sidebar, where it can be read without
+ * covering the map. What is left is the single line worth seeing without
+ * looking away from the city, plus the seed: the strip sits inside the frame a
+ * snapshot captures, so a shared picture always says which city it is.
  *
  * @see instruction.md - "HUD Layout"
  *
  * @component
+ * @param {Object} props
+ * @param {Object} props.stats - playback stats
+ * @param {string} props.seedCode - the five-character city code
  */
-const Hud = ({ algorithm, stats, seedCode }) => {
-  const entry = ALGORITHM_BY_ID[algorithm];
-  const status = describe(stats);
+const Hud = ({ stats, seedCode }) => {
+  const status = runOutcome(stats);
 
   return (
-    <div className="panel hud">
-      <span className="hud__stat">
-        ALGORITHM: <b>{entry?.label ?? '-'}</b>
-      </span>
-      <span className="hud__stat">
-        STEPS: <b>{stats.steps ?? 0}</b>
-      </span>
-      <span className="hud__stat">
-        VISITED: <b>{stats.visited ?? 0}</b>
-      </span>
-      <span className="hud__stat">
-        COST: <b>{stats.found ? stats.cost : '-'}</b>
-      </span>
-
-      {stats.maxEnergy > 0 && <Hearts value={stats.energy ?? 0} max={stats.maxEnergy} />}
-
-      {status && <span className={`hud__flag ${status.bad ? 'hud__flag--bad' : ''}`}>{status.text}</span>}
-
-      <span className="hud__spacer" />
-
-      <span className="hud__stat">
-        SEED: <b>{seedCode}</b>
-      </span>
-      <span className="hud__stat">
-        FPS: <b>{stats.fps ?? 0}</b>
-      </span>
+    <div className="hud">
+      {status && (
+        <span className={`hud__flag ${status.bad ? 'hud__flag--bad' : ''}`}>{status.text}</span>
+      )}
+      <span className="hud__seed">{seedCode}</span>
     </div>
   );
 };
 
-/**
- * Turns the playback state into the one short message worth showing.
- *
- * Order matters here: a search that found nothing is more important than an
- * energy warning about a path that does not exist.
- *
- * @returns {{text: string, bad: boolean}|null}
- */
-function describe(stats) {
-  if (!stats.phase) return null;
-  if (stats.phase === PHASE.SEARCH) return { text: 'SEARCHING', bad: false };
-  if (!stats.found) return { text: 'NO PATH', bad: true };
-  if (stats.phase !== PHASE.DONE) return { text: 'PATH FOUND', bad: false };
-  if (stats.stalled) return { text: 'OUT OF ENERGY', bad: true };
-  return { text: `ARRIVED - ${stats.pathLength} TILES`, bad: false };
-}
-
 Hud.propTypes = {
-  algorithm: PropTypes.string.isRequired,
   stats: PropTypes.object.isRequired,
   seedCode: PropTypes.string.isRequired,
 };

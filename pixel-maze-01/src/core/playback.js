@@ -12,6 +12,7 @@
  * state. This owns its own clock and mutates nothing outside itself.
  */
 import { simulateEnergy } from './algorithms/common.js';
+import { TILE } from './tiles.js';
 
 /** @enum {string} */
 export const PHASE = {
@@ -61,7 +62,57 @@ export class Playback {
     this.stepCursor = 0;
     this.traceCursor = 0;
     this.driveCursor = 0;
+    this.drivenTo = -1;
+    this.passed = this.passed ?? new Uint8Array(this.grid.tiles.length);
+    this.passed.fill(0);
+    this.pickups = [];
     this.phase = this.result.steps.length > 0 ? PHASE.SEARCH : PHASE.DONE;
+  }
+
+  /**
+   * Marks every path tile the vehicle has now reached.
+   *
+   * Called as the drive advances so pickups can be consumed exactly once. The
+   * cursor is a float and a fast replay can cross several tiles in one frame,
+   * so this walks from wherever it left off rather than looking only at the
+   * tile under the vehicle - otherwise a coin gets skipped at high speed.
+   */
+  #advanceDriven() {
+    const path = this.result.path;
+    const limit = Math.min(Math.floor(this.driveCursor), path.length - 1);
+    while (this.drivenTo < limit) {
+      this.drivenTo++;
+      const cell = path[this.drivenTo];
+      if (this.passed[cell]) continue;
+      this.passed[cell] = 1;
+      if (this.grid.tiles[cell] === TILE.COIN) this.pickups.push(cell);
+    }
+  }
+
+  /**
+   * Drains the coins collected since the last call.
+   *
+   * The renderer uses this to fire a burst once per pickup. Draining rather
+   * than exposing the list keeps the "exactly once" guarantee here instead of
+   * asking every caller to remember what it has already seen.
+   *
+   * @returns {number[]} flat cell indices
+   */
+  takePickups() {
+    if (this.pickups.length === 0) return this.pickups;
+    const out = this.pickups;
+    this.pickups = [];
+    return out;
+  }
+
+  /**
+   * Whether the vehicle has already driven over a cell.
+   *
+   * @param {number} cell
+   * @returns {boolean}
+   */
+  hasPassed(cell) {
+    return this.passed[cell] === 1;
   }
 
   /** Skips straight to the end state, with the full path and no animation. */
@@ -71,6 +122,9 @@ export class Playback {
     this.stepCursor = this.appliedSteps;
     this.traceCursor = this.result.path.length;
     this.driveCursor = Math.max(0, this.#driveLimit());
+    this.#advanceDriven();
+    // Nothing watched these go by, so there is no burst to fire for them.
+    this.pickups = [];
     this.phase = PHASE.DONE;
   }
 
@@ -120,6 +174,7 @@ export class Playback {
         this.driveCursor = limit;
         this.phase = PHASE.DONE;
       }
+      this.#advanceDriven();
     }
   }
 

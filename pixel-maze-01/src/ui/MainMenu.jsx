@@ -28,7 +28,7 @@ const MainMenu = ({ algorithm, onAlgorithm, seedText, onSeedText, onGenerate }) 
           <button
             key={entry.id}
             type="button"
-            className={`card ${entry.id === algorithm ? 'card--on' : ''}`}
+            className={`card--algo ${entry.id === algorithm ? 'card--on' : ''}`}
             onClick={() => onAlgorithm(entry.id)}
             aria-pressed={entry.id === algorithm}
           >

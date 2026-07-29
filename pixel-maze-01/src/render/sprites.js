@@ -5,9 +5,14 @@
  * These repaint every frame, so they draw straight onto the scene canvas rather
  * than into a cached layer.
  *
+ * Several of them change with the hour - headlights, a lit chest, a glowing
+ * path seam. They read the stage and the glow tone at the moment they draw and
+ * fall back cleanly when the sun is up and `PALETTE.glow` is null.
+ *
  * @see instruction.md - "Path Visualization", "Vehicle Design", "Start Marker"
  */
-import { PALETTE } from '../core/palette.js';
+import { PALETTE, CURRENT_STAGE } from '../core/palette.js';
+import { isLit, shadowOffset } from '../core/daycycle.js';
 import { px, dither, TILE_PX } from './art.js';
 
 /** Facing directions for the vehicle. */
@@ -89,8 +94,10 @@ export function drawPathTile(ctx, x, y, mask) {
   if (mask & 4) px(ctx, x + inset, y + s - inset, s - inset * 2, inset, PALETTE.dark);
   if (mask & 8) px(ctx, x, y + inset, inset, s - inset * 2, PALETTE.dark);
 
-  // A light seam down the middle so the ribbon has some form to it.
-  px(ctx, x + s / 2 - 1, y + s / 2 - 1, 2, 2, PALETTE.light);
+  // A light seam down the middle so the ribbon has some form to it. After dark
+  // it picks up the glow tone, which turns the route into a lit corridor rather
+  // than a black smear on a black street.
+  px(ctx, x + s / 2 - 1, y + s / 2 - 1, 2, 2, isLit(CURRENT_STAGE) ? PALETTE.glow : PALETTE.light);
 }
 
 /**
@@ -142,8 +149,17 @@ export function drawStartFlag(ctx, x, y, pulse = 0) {
 export function drawGoalChest(ctx, x, y, bounce = 0) {
   const lift = bounce > 0.5 ? 1 : 0;
   const top = y + 4 - lift;
+  const stage = CURRENT_STAGE;
+  const glow = isLit(stage) ? PALETTE.glow : null;
 
   markerPad(ctx, x, y);
+
+  // The halo goes under the chest. Over it, the dither would eat the lid
+  // detail and the whole thing would read as a fogged square. It tracks how lit
+  // the hour is, so it creeps in over the evening instead of snapping on at
+  // first light.
+  if (glow) dither(ctx, x + 1, y + 1, TILE_PX - 2, TILE_PX - 2, glow, 0.15 + stage.lit * 0.25);
+
   px(ctx, x + 2, top, 12, 10, PALETTE.black);
   px(ctx, x + 3, top + 1, 10, 3, PALETTE.mid); // lid
   px(ctx, x + 3, top + 4, 10, 1, PALETTE.black); // hinge
@@ -154,8 +170,43 @@ export function drawGoalChest(ctx, x, y, bounce = 0) {
   px(ctx, x + 7, top + 3, 2, 3, PALETTE.black);
   px(ctx, x + 7, top + 4, 2, 1, PALETTE.bg);
 
+  // Light escaping the seam, so the chest looks like it is holding something.
+  if (glow) {
+    px(ctx, x + 5, top + 4, 6, 1, glow);
+    px(ctx, x + 6, top - 1, 1, 1, glow);
+    px(ctx, x + 10, top - 2, 1, 1, glow);
+  }
+
   // Shadow, so it sits on the ground rather than floating.
   px(ctx, x + 3, y + 14, 10, 1, PALETTE.mid);
+}
+
+/**
+ * The pool of light a vehicle throws ahead of itself after dark.
+ *
+ * Three widening bands rather than a true cone: the shape is only ever a dozen
+ * pixels long, and a scanline cone at that size costs a fill per row for no
+ * visible gain over this.
+ *
+ * @param {CanvasRenderingContext2D} ctx
+ * @param {number} cx - centre of the vehicle's nose
+ * @param {number} cy
+ * @param {number} dir - a {@link DIR} value
+ */
+function headlights(ctx, cx, cy, dir) {
+  const glow = PALETTE.glow;
+  if (!glow) return;
+
+  for (let i = 0; i < 3; i++) {
+    const start = 1 + i * 4;
+    const half = 3 + i * 2;
+    const density = 0.5 - i * 0.17;
+
+    if (dir === DIR.N) dither(ctx, cx - half, cy - start - 4, half * 2, 4, glow, density);
+    else if (dir === DIR.S) dither(ctx, cx - half, cy + start, half * 2, 4, glow, density);
+    else if (dir === DIR.W) dither(ctx, cx - start - 4, cy - half, 4, half * 2, glow, density);
+    else dither(ctx, cx + start, cy - half, 4, half * 2, glow, density);
+  }
 }
 
 /**
@@ -175,12 +226,19 @@ export function drawVehicle(ctx, x, y, dir, phase = 0) {
   const bob = phase > 0.5 ? -1 : 0;
   const spin = Math.floor(phase * 4) % 2; // wheels alternate between two frames
   const vertical = dir === DIR.N || dir === DIR.S;
+  const stage = CURRENT_STAGE;
+  // One floor tall, so the shadow stays tucked close - a car throwing a
+  // five-storey shadow reads as a building that happens to be moving.
+  const cast = shadowOffset(stage, 1);
 
   if (vertical) {
     const bx = x + 3;
     const by = y + 1 + bob;
 
-    // Wheels first, so the body overlaps them.
+    dither(ctx, bx + cast.x, by + 1 + cast.y, 10, 13, PALETTE.dark, stage.sun.density * 0.8);
+    headlights(ctx, bx + 5, dir === DIR.N ? by : by + 14, dir);
+
+    // Wheels next, so the body overlaps them.
     for (const wy of [by + 2, by + 9]) {
       px(ctx, bx - 1, wy + spin, 2, 3, PALETTE.black);
       px(ctx, bx + 9, wy + spin, 2, 3, PALETTE.black);
@@ -197,11 +255,14 @@ export function drawVehicle(ctx, x, y, dir, phase = 0) {
     px(ctx, bx + 2, glassY, 6, 2, PALETTE.light);
     // Headlights.
     const lampY = dir === DIR.N ? by + 1 : by + 11;
-    px(ctx, bx + 1, lampY, 2, 1, PALETTE.bg);
-    px(ctx, bx + 7, lampY, 2, 1, PALETTE.bg);
+    px(ctx, bx + 1, lampY, 2, 1, PALETTE.glow ?? PALETTE.bg);
+    px(ctx, bx + 7, lampY, 2, 1, PALETTE.glow ?? PALETTE.bg);
   } else {
     const bx = x + 1;
     const by = y + 3 + bob;
+
+    dither(ctx, bx + 1 + cast.x, by + cast.y, 13, 10, PALETTE.dark, stage.sun.density * 0.8);
+    headlights(ctx, dir === DIR.W ? bx : bx + 14, by + 5, dir);
 
     for (const wx of [bx + 2, bx + 9]) {
       px(ctx, wx + spin, by - 1, 3, 2, PALETTE.black);
@@ -217,7 +278,7 @@ export function drawVehicle(ctx, x, y, dir, phase = 0) {
     const glassX = dir === DIR.W ? bx + 2 : bx + 10;
     px(ctx, glassX, by + 2, 2, 6, PALETTE.light);
     const lampX = dir === DIR.W ? bx + 1 : bx + 11;
-    px(ctx, lampX, by + 1, 1, 2, PALETTE.bg);
-    px(ctx, lampX, by + 7, 1, 2, PALETTE.bg);
+    px(ctx, lampX, by + 1, 1, 2, PALETTE.glow ?? PALETTE.bg);
+    px(ctx, lampX, by + 7, 1, 2, PALETTE.glow ?? PALETTE.bg);
   }
 }

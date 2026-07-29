@@ -17,6 +17,7 @@ import { TILE } from '../core/tiles.js';
 import { px } from '../render/art.js';
 import { drawRoad, drawWall, drawHazard, OPEN } from '../render/terrain.js';
 import { drawStartFlag, drawGoalChest, drawVehicle, DIR } from '../render/sprites.js';
+import { drawCoin } from '../render/effects.js';
 
 /** A tile open on all four sides, so terrain icons render as a crossroads. */
 const CROSS_ROADS = OPEN.N | OPEN.E | OPEN.S | OPEN.W;
@@ -32,7 +33,9 @@ export const ICONS = {
 
   coin: (ctx) => {
     drawRoad(ctx, 0, 0, 1, 1, CROSS_ROADS);
-    drawHazard(ctx, 0, 0, TILE.COIN);
+    // Coins live on the animated layer now, so the swatch borrows the spin
+    // sprite at phase 0 - its widest, most coin-like frame.
+    drawCoin(ctx, 0, 0, 0);
   },
 
   rubble: (ctx) => {
@@ -81,6 +84,11 @@ export const ICONS = {
     px(ctx, 9, 3, 3, 10, PALETTE.black);
   },
 
+  /** A filled square. */
+  stop: (ctx) => {
+    px(ctx, 4, 4, 8, 8, PALETTE.black);
+  },
+
   /** A square arrow looping back on itself. */
   reset: (ctx) => {
     px(ctx, 3, 3, 10, 2, PALETTE.black);
@@ -118,6 +126,99 @@ export const ICONS = {
     px(ctx, 5, 10, 6, 2, PALETTE.black);
     px(ctx, 7, 12, 2, 2, PALETTE.black);
     px(ctx, 4, 5, 2, 2, PALETTE.bg); // glint
+  },
+
+  /** Tray with a down arrow. */
+  download: (ctx) => {
+    px(ctx, 7, 2, 2, 6, PALETTE.black);
+    px(ctx, 4, 7, 8, 2, PALETTE.black);
+    px(ctx, 6, 9, 4, 2, PALETTE.black);
+    px(ctx, 7, 11, 2, 1, PALETTE.black);
+    px(ctx, 2, 12, 12, 2, PALETTE.black);
+    px(ctx, 3, 13, 10, 1, PALETTE.mid);
+  },
+
+  /** Two cards mid-turn, for the board flip. */
+  flip: (ctx) => {
+    px(ctx, 2, 3, 5, 10, PALETTE.black);
+    px(ctx, 3, 4, 3, 8, PALETTE.mid);
+    px(ctx, 9, 3, 5, 10, PALETTE.black);
+    px(ctx, 10, 4, 3, 8, PALETTE.light);
+    px(ctx, 7, 7, 2, 2, PALETTE.dark);
+  },
+
+  /** Sun with rays. */
+  sun: (ctx) => {
+    px(ctx, 5, 5, 6, 6, PALETTE.black);
+    px(ctx, 6, 6, 4, 4, PALETTE.bg);
+    px(ctx, 7, 1, 2, 3, PALETTE.black);
+    px(ctx, 7, 12, 2, 3, PALETTE.black);
+    px(ctx, 1, 7, 3, 2, PALETTE.black);
+    px(ctx, 12, 7, 3, 2, PALETTE.black);
+    px(ctx, 3, 3, 2, 2, PALETTE.black);
+    px(ctx, 11, 11, 2, 2, PALETTE.black);
+  },
+
+  /** Crescent moon. */
+  moon: (ctx) => {
+    px(ctx, 4, 2, 8, 12, PALETTE.black);
+    px(ctx, 3, 4, 10, 8, PALETTE.black);
+    px(ctx, 5, 3, 6, 10, PALETTE.bg);
+    px(ctx, 4, 5, 8, 6, PALETTE.bg);
+    px(ctx, 8, 2, 6, 12, PALETTE.backdrop);
+    px(ctx, 7, 4, 7, 8, PALETTE.backdrop);
+  },
+
+  /** Dice, for a fresh random seed. */
+  dice: (ctx) => {
+    px(ctx, 2, 2, 12, 12, PALETTE.black);
+    px(ctx, 3, 3, 10, 10, PALETTE.light);
+    px(ctx, 5, 5, 2, 2, PALETTE.black);
+    px(ctx, 10, 5, 2, 2, PALETTE.black);
+    px(ctx, 7, 7, 2, 2, PALETTE.black);
+    px(ctx, 5, 10, 2, 2, PALETTE.black);
+    px(ctx, 10, 10, 2, 2, PALETTE.black);
+  },
+
+  /** Four arrows pointing out, for fullscreen. */
+  expand: (ctx) => {
+    const corner = (cx, cy, dx, dy) => {
+      px(ctx, cx, cy, 5 * dx, 2, PALETTE.black);
+      px(ctx, cx, cy, 2, 5 * dy, PALETTE.black);
+    };
+    corner(1, 1, 1, 1);
+    corner(15, 1, -1, 1);
+    corner(1, 15, 1, -1);
+    corner(15, 15, -1, -1);
+  },
+
+  /** The GitHub mark, reduced to a readable silhouette at 16px. */
+  github: (ctx) => {
+    px(ctx, 3, 3, 10, 8, PALETTE.black);
+    px(ctx, 2, 5, 12, 5, PALETTE.black);
+    px(ctx, 5, 5, 2, 2, PALETTE.bg);
+    px(ctx, 9, 5, 2, 2, PALETTE.bg);
+    px(ctx, 4, 11, 3, 4, PALETTE.black);
+    px(ctx, 9, 11, 3, 4, PALETTE.black);
+  },
+
+  /** LinkedIn: the "in" block. */
+  linkedin: (ctx) => {
+    px(ctx, 2, 2, 12, 12, PALETTE.black);
+    px(ctx, 4, 6, 2, 6, PALETTE.bg);
+    px(ctx, 4, 3, 2, 2, PALETTE.bg);
+    px(ctx, 8, 6, 2, 6, PALETTE.bg);
+    px(ctx, 10, 6, 2, 2, PALETTE.bg);
+    px(ctx, 11, 8, 1, 4, PALETTE.bg);
+  },
+
+  /** A person, for the portfolio link. */
+  person: (ctx) => {
+    px(ctx, 6, 2, 4, 4, PALETTE.black);
+    px(ctx, 5, 3, 6, 2, PALETTE.black);
+    px(ctx, 4, 8, 8, 6, PALETTE.black);
+    px(ctx, 3, 10, 10, 4, PALETTE.black);
+    px(ctx, 6, 10, 4, 3, PALETTE.bg);
   },
 
   /** An empty heart - outline only, so the bar reads at a glance. */

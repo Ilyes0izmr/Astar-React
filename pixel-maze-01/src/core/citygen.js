@@ -23,6 +23,7 @@
 import { TILE } from './tiles.js';
 import { createGrid, idx, setTile, neighbors, floodFill, furthestFrom } from './grid.js';
 import { createRng, randomSeed } from './rng.js';
+import { analyzeBuildings } from './buildings.js';
 
 /**
  * @typedef {Object} CityOptions
@@ -69,7 +70,23 @@ export function generateCity(options = {}) {
   keepLargestRegion(grid);
   placeMarkers(grid);
   scatterHazards(grid, rng, opts.hazards, opts.coins);
+  refreshBuildings(grid);
 
+  return grid;
+}
+
+/**
+ * Recomputes the building index after the walls change.
+ *
+ * The editor has to call this - painting a wall can merge two buildings into
+ * one or split one in half, and a stale index would leave the painter drawing a
+ * warehouse roof across what is now two separate blocks.
+ *
+ * @param {import('./grid.js').Grid} grid - mutated
+ * @returns {import('./grid.js').Grid} the same grid, for chaining
+ */
+export function refreshBuildings(grid) {
+  grid.buildings = analyzeBuildings(grid);
   return grid;
 }
 
