@@ -262,6 +262,11 @@ export class ParticleField {
       p.vy = -8 - r() * 16;
       p.ttl = 0.25 + r() * 0.25;
       p.size = 1;
+    } else if (kind === 'smoke') {
+      p.vx = (r() - 0.5) * 12;
+      p.vy = -20 - r() * 15;
+      p.ttl = 1.0 + r() * 2.0;
+      p.size = r() > 0.5 ? 2 : 1;
     } else {
       p.vx = (r() - 0.5) * 10;
       p.vy = (r() - 0.5) * 10 - 4;
@@ -293,7 +298,12 @@ export class ParticleField {
       p.y += p.vy * step;
       p.vx *= drag;
       p.vy *= drag;
-      if (p.kind !== 'dust') p.vy += 70 * step;
+      
+      if (p.kind === 'smoke') {
+        p.vx += (Math.random() - 0.5) * 15 * step;
+      } else if (p.kind !== 'dust') {
+        p.vy += 70 * step;
+      }
     }
   }
 
@@ -318,6 +328,8 @@ export class ParticleField {
         // Dust settles toward the road tone it was kicked up from, so it thins
         // out instead of blinking away.
         color = t > 0.55 ? PALETTE.dark : PALETTE.mid;
+      } else if (p.kind === 'smoke') {
+        color = t > 0.6 ? PALETTE.light : (t > 0.3 ? PALETTE.mid : PALETTE.dark);
       } else {
         color = t > 0.45 ? bright : PALETTE.light;
       }

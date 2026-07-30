@@ -12,11 +12,13 @@ import { PALETTE } from '../core/palette.js';
 import { TILE, isWalkable } from '../core/tiles.js';
 import { px, hash2, TILE_PX } from './art.js';
 
-const MAX_ENTITIES = 150;
+const MAX_ENTITIES = 200; // Increased to accommodate more life
 const PEDESTRIAN_SPEED = 8; // px/s
 const CYCLIST_SPEED = 20;
 const ANIMAL_SPEED = 5;
 const BIRD_SPEED = 30;
+const CAR_SPEED = 45;
+const BUTTERFLY_SPEED = 12;
 
 /**
  * @typedef {Object} Entity
@@ -42,11 +44,11 @@ function randomWalkableCell(grid, seed) {
 
 const ENTITY_KINDS = [
   'pedestrian', 'pedestrian', 'pedestrian', 'pedestrian',
-  'cyclist',
+  'cyclist', 'car', 'car',
   'cat', 'dog',
   'bird', 'bird',
   'pigeon',
-  'seagull',
+  'seagull', 'butterfly'
 ];
 
 export class CityLife {
@@ -81,20 +83,24 @@ export class CityLife {
     switch (kind) {
       case 'pedestrian': return ['dark', 'mid', 'black'][seed % 3];
       case 'cyclist': return 'dark';
+      case 'car': return ['black', 'dark', 'mid'][seed % 3];
       case 'cat': return ['dark', 'mid', 'light'][seed % 3];
       case 'dog': return ['dark', 'mid'][seed % 2];
       case 'bird': return 'dark';
       case 'pigeon': return 'mid';
       case 'seagull': return 'bg';
+      case 'butterfly': return 'bg';
       default: return 'dark';
     }
   }
 
   _speedForKind(kind) {
     switch (kind) {
+      case 'car': return CAR_SPEED;
       case 'cyclist': return CYCLIST_SPEED;
       case 'bird':
       case 'seagull': return BIRD_SPEED;
+      case 'butterfly': return BUTTERFLY_SPEED;
       case 'cat':
       case 'dog':
       case 'pigeon': return ANIMAL_SPEED;
@@ -235,6 +241,33 @@ export class CityLife {
           const sWing = Math.floor(Date.now() / 200) % 2;
           px(ctx, x - 1, y - sWing, 1, 1, PALETTE.bg);
           px(ctx, x + 2, y - sWing, 1, 1, PALETTE.bg);
+          break;
+
+        case 'car':
+          // A simple vehicle body
+          if (Math.abs(e.vx) > Math.abs(e.vy)) {
+            // Horizontal
+            px(ctx, x - 2, y - 1, 5, 3, color);
+            px(ctx, x - 1, y - 2, 3, 5, PALETTE.black); // shadow/wheels
+            px(ctx, x, y, 1, 1, PALETTE.light); // window
+          } else {
+            // Vertical
+            px(ctx, x - 1, y - 2, 3, 5, color);
+            px(ctx, x - 2, y - 1, 5, 3, PALETTE.black); // shadow/wheels
+            px(ctx, x, y, 1, 1, PALETTE.light); // window
+          }
+          break;
+
+        case 'butterfly':
+          const bPhase = Math.floor(Date.now() / 100) % 2;
+          const jitterX = Math.sin(Date.now() / 300 + x) * 2;
+          const jitterY = Math.cos(Date.now() / 250 + y) * 2;
+          if (bPhase === 0) {
+            px(ctx, x + jitterX, y + jitterY, 1, 1, color);
+          } else {
+            px(ctx, x - 1 + jitterX, y - 1 + jitterY, 1, 1, color);
+            px(ctx, x + 1 + jitterX, y - 1 + jitterY, 1, 1, color);
+          }
           break;
       }
     }
