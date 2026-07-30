@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import PixelIcon from './PixelIcon.jsx';
+import Icon from './Icon.jsx';
 
 /**
  * Where the contact buttons point.
@@ -7,11 +7,6 @@ import PixelIcon from './PixelIcon.jsx';
  * TODO: swap the `#` placeholders for the real profile URLs. They are gathered
  * into this one list so that is a single edit in a single file, rather than
  * three hrefs buried in the markup.
- *
- * The glyphs come from the shared 16x16 set and are hand-drawn silhouettes, not
- * the official marks - at this resolution nothing else would survive anyway.
- * Each link carries its name in the title and the accessible label, so the icon
- * never has to do the identifying on its own.
  */
 const CONTACT = [
   { id: 'github', name: 'GITHUB', icon: 'github', href: '#' },
@@ -22,16 +17,15 @@ const CONTACT = [
 /**
  * The toolbar strip across the top of the card.
  *
- * Reading left to right it is the run, then the speed it runs at, then the
- * things that change the map, then the things that leave with you - each group
- * separated by a rule so the bar reads as four short bars rather than one long
- * one. The frame rate sits hard right in its own box: it is the only number
- * here that nobody acts on, and mixing it in with the controls makes both
- * harder to find.
+ * Reading left to right: the run, then the speed it runs at, then how the map is
+ * viewed, then the things that leave with you - each group separated by a rule
+ * so the bar reads as four short bars rather than one long one. The frame rate
+ * sits hard right in its own box: it is the only number here nobody acts on, and
+ * mixing it in with the controls makes both harder to find.
  *
- * Button shapes carry meaning. The one primary action is a filled pill, the
- * transport controls that repeat are round, and everything destructive or
- * modal is a cut rectangle.
+ * There is no GENERATE here any more. It lives beside the seed and the size in
+ * the sidebar, which is where the decisions that feed it already are - having it
+ * in both places meant two buttons that looked different and did the same thing.
  *
  * @see instruction.md - "HUD Layout", "Buttons"
  *
@@ -46,9 +40,10 @@ const CONTACT = [
  * @param {number} props.speedIndex
  * @param {(index: number) => void} props.onSpeedIndex
  * @param {number[]} props.speeds - the slider stops, in steps per second
- * @param {() => void} props.onGenerate
  * @param {boolean} props.fog
  * @param {(on: boolean) => void} props.onFog
+ * @param {boolean} props.grab - the pointer drags the map instead of painting
+ * @param {(on: boolean) => void} props.onGrab
  * @param {() => void} props.onCompare
  * @param {() => void} props.onDownload
  * @param {boolean} props.flipped - the board is showing its back face
@@ -66,49 +61,65 @@ const Navbar = ({
   speedIndex,
   onSpeedIndex,
   speeds,
-  onGenerate,
   fog,
   onFog,
+  grab,
+  onGrab,
   onCompare,
   onDownload,
   flipped,
   onToggleFlip,
+  colored,
+  onToggleColor,
   onMenu,
   fps = 0,
 }) => (
   <div className="navbar">
-    <div className="navbar__group">
-      {/* One control for the whole run. Before a search exists it starts one;
-          after that it pauses and resumes it. Splitting "solve" from "play" put
-          two buttons on the bar that did the same thing from the player's side
-          of the screen, which is what made the group feel redundant. */}
+    <div className="navbar__group" style={{ flex: '0 0 auto' }}>
+      {/* Solve, pause and reset are the same size and shape on purpose: they are
+          one transport cluster, and making the primary one larger split it into
+          a button and two afterthoughts. Colour carries the emphasis instead. */}
       <button
         type="button"
-        className="btn btn--round btn--xl btn--primary"
-        onClick={hasResult ? onTogglePlay : onSolve}
+        className="btn btn--primary"
+        onClick={onSolve}
         disabled={!canSolve}
-        title={!hasResult ? 'START' : playing ? 'PAUSE' : 'RESUME'}
-        aria-label={!hasResult ? 'Start' : playing ? 'Pause' : 'Resume'}
+        data-tip={canSolve ? 'Run the search' : 'Place a start and a goal first'}
       >
-        <PixelIcon name={hasResult && playing ? 'pause' : 'play'} scale={2} />
+        <Icon name="play" />
+        SOLVE
       </button>
 
       <button
         type="button"
-        className="btn btn--round btn--lg"
+        className="btn"
+        onClick={onTogglePlay}
+        disabled={!hasResult}
+        data-tip={playing ? 'Pause the replay' : 'Resume the replay'}
+      >
+        <Icon name={playing ? 'pause' : 'play'} />
+        {playing ? 'PAUSE' : 'PLAY'}
+      </button>
+
+      <button
+        type="button"
+        className="btn"
         onClick={onReset}
         disabled={!hasResult}
-        title="STOP AND REWIND"
-        aria-label="Stop and rewind"
+        data-tip="Rewind to the first step"
       >
-        <PixelIcon name="stop" />
+        <Icon name="reset" />
+        RESET
       </button>
     </div>
 
     <span className="navbar__div" />
 
     <div className="navbar__group">
-      <span className="navbar__label">SPEED</span>
+      <span className="navbar__label">
+        <Icon name="speed" size={14} />
+        SPEED
+      </span>
       <input
         className="slider"
         type="range"
@@ -126,9 +137,14 @@ const Navbar = ({
     <span className="navbar__div" />
 
     <div className="navbar__group">
-      <button type="button" className="btn" onClick={onGenerate}>
-        <PixelIcon name="city" />
-        GENERATE
+      <button
+        type="button"
+        className={`btn btn--round ${grab ? 'btn--on' : ''}`}
+        onClick={() => onGrab(!grab)}
+        aria-pressed={grab}
+        data-tip="Grab and drag the map"
+      >
+        <Icon name="grab" />
       </button>
 
       <button
@@ -136,10 +152,19 @@ const Navbar = ({
         className={`btn btn--round ${fog ? 'btn--on' : ''}`}
         onClick={() => onFog(!fog)}
         aria-pressed={fog}
-        title="FOG OF WAR"
-        aria-label="Fog of war"
+        data-tip="Fog of war on the minimap"
       >
-        <PixelIcon name="compass" />
+        <Icon name={fog ? 'fogOff' : 'fog'} />
+      </button>
+
+      <button
+        type="button"
+        className={`btn btn--round ${colored ? 'btn--on' : ''}`}
+        onClick={onToggleColor}
+        aria-pressed={colored}
+        data-tip={colored ? 'Switch to Retro mode' : 'Switch to Color mode'}
+      >
+        <Icon name={colored ? 'rainbow' : 'crt'} />
       </button>
 
       <button
@@ -147,29 +172,28 @@ const Navbar = ({
         className="btn btn--round"
         onClick={onCompare}
         disabled={!canSolve}
-        title="COMPARE ALGORITHMS"
-        aria-label="Compare algorithms"
+        data-tip="Run all five algorithms on this city"
       >
-        <PixelIcon name="gear" />
+        <Icon name="compare" />
       </button>
     </div>
 
     <span className="navbar__div" />
 
     <div className="navbar__group">
-      <button type="button" className="btn" onClick={onDownload} title="DOWNLOAD A PNG SNAPSHOT">
-        <PixelIcon name="download" />
+      <button type="button" className="btn" onClick={onDownload} data-tip="Save a PNG of the board">
+        <Icon name="download" />
         SAVE
       </button>
 
       <button
         type="button"
-        className={`btn btn--pill ${flipped ? 'btn--on' : ''}`}
+        className={`btn ${flipped ? 'btn--on' : ''}`}
         onClick={onToggleFlip}
         aria-pressed={flipped}
-        title="TURN THE BOARD OVER"
+        data-tip="Turn the board over for the run sheet"
       >
-        <PixelIcon name="flip" />
+        <Icon name="flip" />
         {/* The label names what the press will show, not what is on screen. */}
         {flipped ? 'BOARD' : 'FLIP'}
       </button>
@@ -185,25 +209,23 @@ const Navbar = ({
           href={link.href}
           target="_blank"
           rel="noreferrer"
-          title={link.name}
-          aria-label={link.name}
+          data-tip={link.name}
         >
-          <PixelIcon name={link.icon} />
+          <Icon name={link.icon} />
         </a>
       ))}
     </div>
 
-    <span className="navbar__div" />
+    <span className="navbar__spacer" />
 
-    <div className="navbar__group navbar__group--end">
-      <div className="fps">
-        FPS <b>{fps}</b>
-      </div>
-
-      <button type="button" className="btn btn--cut" onClick={onMenu}>
-        MENU
-      </button>
+    <div className="fps" data-tip="Frames per second">
+      FPS <b>{fps}</b>
     </div>
+
+    <button type="button" className="btn btn--cut" onClick={onMenu} data-tip="Back to the menu">
+      <Icon name="menu" />
+      MENU
+    </button>
   </div>
 );
 
@@ -217,13 +239,16 @@ Navbar.propTypes = {
   speedIndex: PropTypes.number.isRequired,
   onSpeedIndex: PropTypes.func.isRequired,
   speeds: PropTypes.arrayOf(PropTypes.number).isRequired,
-  onGenerate: PropTypes.func.isRequired,
   fog: PropTypes.bool.isRequired,
   onFog: PropTypes.func.isRequired,
+  grab: PropTypes.bool.isRequired,
+  onGrab: PropTypes.func.isRequired,
   onCompare: PropTypes.func.isRequired,
   onDownload: PropTypes.func.isRequired,
   flipped: PropTypes.bool.isRequired,
   onToggleFlip: PropTypes.func.isRequired,
+  colored: PropTypes.bool.isRequired,
+  onToggleColor: PropTypes.func.isRequired,
   onMenu: PropTypes.func.isRequired,
   fps: PropTypes.number,
 };

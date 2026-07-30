@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import { ALGORITHMS, ALGORITHM_BY_ID } from '../core/algorithms/index.js';
-import PixelIcon from './PixelIcon.jsx';
+import Icon from './Icon.jsx';
 
 /**
  * The title screen.
@@ -54,7 +54,7 @@ const MainMenu = ({ algorithm, onAlgorithm, seedText, onSeedText, onGenerate }) 
         </label>
 
         <button type="button" className="btn btn--primary" onClick={onGenerate}>
-          <PixelIcon name="city" />
+          <Icon name="city" />
           GENERATE CITY
         </button>
       </div>

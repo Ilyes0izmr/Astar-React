@@ -11,6 +11,8 @@
     "verify": "node src/core/verify.mjs"
   },
   "dependencies": {
+    "lucide-react": "^1.28.0",
+    "pixelarticons": "^2.2.0",
     "prop-types": "^15.8.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"

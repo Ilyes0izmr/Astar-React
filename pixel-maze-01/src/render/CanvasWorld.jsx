@@ -1,10 +1,29 @@
 import { useEffect, useRef, useCallback, memo } from 'react';
 import PropTypes from 'prop-types';
-import { PALETTE, CURRENT_STAGE, applyStage } from '../core/palette.js';
+import { PALETTE, CURRENT_STAGE, applyStage, applyWeatherFilter } from '../core/palette.js';
 import { TILE } from '../core/tiles.js';
 import { isLit, stageAt } from '../core/daycycle.js';
 import { TILE_PX, drawBrackets, hash2 } from './art.js';
-import { drawRoad, drawHazard, drawBuildingTile, drawShadowPass, openMask } from './terrain.js';
+import {
+  drawRoad,
+  drawHazard,
+  drawBuildingTile,
+  drawShadowPass,
+  drawWater,
+  drawSand,
+  drawMountain,
+  drawBridge,
+  drawPier,
+  drawRailway,
+  drawStation,
+  setSettledSnow,
+  openMask,
+} from './terrain.js';
+import { drawWaterShimmer, ShipField } from './seascape.js';
+import { WeatherSystem } from './weather.js';
+import { TrainSystem } from './train.js';
+import { CityLife } from './life.js';
+import { weatherAt, renderMode } from '../core/weather.js';
 import {
   drawExplored,
   drawFrontier,
@@ -15,7 +34,7 @@ import {
   directionBetween,
   DIR,
 } from './sprites.js';
-import { drawCoin, drawSparkle, drawStreetLamp, drawStars, ParticleField } from './effects.js';
+import { drawCoin, drawSparkle, drawStreetLamp, drawStars, ParticleField, drawLighthouse } from './effects.js';
 import { createViewport } from './viewport.js';
 
 /** How often the HUD numbers refresh. Any faster is wasted on the eye. */
@@ -69,10 +88,13 @@ const CanvasWorld = ({
   grid,
   gridVersion,
   stageIndex,
+  weatherIndex,
+  colored,
   playbackRef,
   playing,
   speed,
   brush,
+  grab,
   onPaint,
   onStats,
   onViewport,
@@ -95,6 +117,10 @@ const CanvasWorld = ({
   const statsRef = useRef(onStats);
   const viewportStatsRef = useRef(onViewport);
   const lastGoalRef = useRef(false);
+  const shipsRef = useRef(null);
+  const trainRef = useRef(null);
+  const lifeRef = useRef(null);
+  const weatherRef = useRef(null);
 
   playingRef.current = playing;
   speedRef.current = speed;
@@ -108,6 +134,25 @@ const CanvasWorld = ({
   const worldHeight = grid.height * TILE_PX;
 
   if (!particlesRef.current) particlesRef.current = new ParticleField();
+  if (!weatherRef.current) weatherRef.current = new WeatherSystem();
+
+  // The fleet is tied to the map it sails, so a new city gets a new one. Keyed
+  // on the grid object rather than rebuilt every render, since the ships carry
+  // their own positions and recreating them would teleport the boats home on
+  // every unrelated state change.
+  const shipGridRef = useRef(null);
+  if (shipGridRef.current !== grid) {
+    shipGridRef.current = grid;
+    shipsRef.current = new ShipField(grid);
+    trainRef.current = new TrainSystem(grid);
+    lifeRef.current = new CityLife(grid);
+  }
+
+  // Switching mode reseeds the precipitation, so rain does not hang in the air
+  // when the slider moves to snow.
+  useEffect(() => {
+    weatherRef.current.setMode(weatherAt(weatherIndex).id);
+  }, [weatherIndex]);
 
   /**
    * Repaints the cached terrain layer from scratch.
@@ -121,6 +166,13 @@ const CanvasWorld = ({
    * for the CSS variables costs nothing.
    */
   const paintTerrain = useCallback(() => {
+    const mode = weatherAt(weatherIndex);
+    // Both of these have to land before a single tile is painted: the filter
+    // decides what colour everything is, and settled snow changes the artwork
+    // itself. Applying either afterwards would bake the previous look into the
+    // cache and leave the map a mode behind the slider.
+    applyWeatherFilter(renderMode(colored), stageAt(stageIndex));
+    setSettledSnow(mode.id === 'snow');
     applyStage(stageAt(stageIndex));
 
     let canvas = terrainRef.current;
@@ -137,11 +189,40 @@ const CanvasWorld = ({
     ctx.fillRect(0, 0, worldWidth, worldHeight);
     drawStars(ctx, worldWidth, worldHeight, CURRENT_STAGE);
 
+    // Ground pass. Every non-building tile paints its own surface here, and the
+    // natural terrain has to go down before the shadow pass so the range and the
+    // river can be shadowed onto like anything else.
     for (let row = 0; row < grid.height; row++) {
       for (let col = 0; col < grid.width; col++) {
-        const tile = grid.tiles[row * grid.width + col];
-        if (tile === TILE.WALL) continue;
-        drawRoad(ctx, col * TILE_PX, row * TILE_PX, col, row, openMask(grid, row, col));
+        const cell = row * grid.width + col;
+        const tile = grid.tiles[cell];
+        if (tile === TILE.WALL || tile === TILE.MOUNTAIN || tile === TILE.FOREST || tile === TILE.STATION_BUILDING) continue;
+
+        const x = col * TILE_PX;
+        const y = row * TILE_PX;
+        switch (tile) {
+          case TILE.WATER:
+            drawWater(ctx, grid, cell, x, y);
+            break;
+          case TILE.SAND:
+            drawSand(ctx, grid, cell, x, y);
+            break;
+          case TILE.BRIDGE:
+            drawBridge(ctx, grid, cell, x, y, openMask(grid, row, col));
+            break;
+          case TILE.PIER:
+            drawPier(ctx, grid, cell, x, y);
+            break;
+          case TILE.RAILWAY:
+            drawRailway(ctx, x, y);
+            break;
+          case TILE.STATION:
+            drawStation(ctx, x, y);
+            break;
+          default:
+            drawRoad(ctx, x, y, col, row, openMask(grid, row, col));
+            break;
+        }
       }
     }
 
@@ -156,9 +237,16 @@ const CanvasWorld = ({
         const x = col * TILE_PX;
         const y = row * TILE_PX;
 
-        if (tile === TILE.WALL) {
+        if (tile === TILE.MOUNTAIN) {
+          drawMountain(ctx, grid, cell, x, y);
+        } else if (tile === TILE.WALL) {
           const building = owner && owner[cell] >= 0 ? list[owner[cell]] : null;
           drawBuildingTile(ctx, grid, cell, x, y, openMask(grid, row, col), building);
+        } else if (tile === TILE.FOREST) {
+          // A stand of trees is a building type in terrain, so we reuse the park logic.
+          drawBuildingTile(ctx, grid, cell, x, y, openMask(grid, row, col), { type: 'park' });
+        } else if (tile === TILE.STATION_BUILDING) {
+          drawBuildingTile(ctx, grid, cell, x, y, openMask(grid, row, col), null);
         } else {
           // Coins are deliberately absent here - they spin, so they belong to
           // the animated layer below.
@@ -166,12 +254,14 @@ const CanvasWorld = ({
         }
       }
     }
-  }, [grid, worldWidth, worldHeight, stageIndex]);
+  }, [grid, worldWidth, worldHeight, stageIndex, weatherIndex, colored]);
 
   // `gridVersion` is the change signal for the tiles, which live in a mutable
-  // typed array React cannot see into. `stageIndex` is the other one: the cache
-  // holds baked palette colors, so a new hour is a full repaint.
-  useEffect(paintTerrain, [paintTerrain, gridVersion]);
+  // typed array React cannot see into. The hour and the weather are the others:
+  // the cache holds baked palette colors, so either one is a full repaint.
+  useEffect(() => {
+    paintTerrain();
+  }, [paintTerrain, gridVersion, stageIndex, weatherIndex, colored]);
 
   /**
    * Creates the viewport and refits it whenever the container resizes.
@@ -231,6 +321,17 @@ const CanvasWorld = ({
       ctx.fillRect(0, 0, worldWidth, worldHeight);
       if (terrainRef.current) ctx.drawImage(terrainRef.current, 0, 0);
 
+      // The sea goes down immediately after the cached terrain, before any
+      // search overlay. It is scenery, not information - drawing it later would
+      // put moving glints on top of the explored shading and the path.
+      drawWaterShimmer(ctx, grid, now);
+      shipsRef.current?.update(dt);
+      shipsRef.current?.draw(ctx, now);
+      trainRef.current?.update(dt);
+      trainRef.current?.draw(ctx, now);
+      lifeRef.current?.update(dt);
+      lifeRef.current?.draw(ctx);
+
       if (playback) {
         const { explored } = playback;
         for (let i = 0; i < explored.length; i++) {
@@ -283,22 +384,32 @@ const CanvasWorld = ({
 
       if (lit) {
         for (let i = 0; i < grid.tiles.length; i++) {
-          if (grid.tiles[i] === TILE.WALL) continue;
-          // One lamp per few intersections, chosen deterministically so they
-          // stay put between frames.
+          const t = grid.tiles[i];
+          // Street lamps belong beside roads, sidewalks and plazas - never in
+          // water, on mountains, on railway tracks or in the forest.
+          if (t !== TILE.FLOOR && t !== TILE.COIN && t !== TILE.RUBBLE && t !== TILE.SPIKE) continue;
           if (hash2(i % grid.width, Math.floor(i / grid.width), 21) > 0.94) {
             drawStreetLamp(ctx, cellX(i), cellY(i), now);
           }
         }
       }
 
+      // Lighthouse
+      if (grid.lighthouse) {
+        const lh = grid.lighthouse;
+        drawLighthouse(ctx, lh.col * TILE_PX, lh.row * TILE_PX, now);
+      }
+
       const slowPulse = 0.5 + 0.5 * Math.sin(now / 500);
-      if (grid.start >= 0) drawStartFlag(ctx, cellX(grid.start), cellY(grid.start), slowPulse);
+      if (grid.start >= 0) {
+        drawStartFlag(ctx, cellX(grid.start), cellY(grid.start), slowPulse);
+        drawSparkle(ctx, cellX(grid.start) + 2, cellY(grid.start) + 2, (now / 400) % 1, 4);
+      }
       if (grid.goal >= 0) {
         drawGoalChest(ctx, cellX(grid.goal), cellY(grid.goal), slowPulse);
-        if (slowPulse > 0.94) {
-          drawSparkle(ctx, cellX(grid.goal) + 12, cellY(grid.goal) + 3, (now / 300) % 1, 5);
-        }
+        drawSparkle(ctx, cellX(grid.goal) + 12, cellY(grid.goal) + 3, (now / 300) % 1, 5);
+        drawSparkle(ctx, cellX(grid.goal) + 4, cellY(grid.goal) + 10, ((now + 150) / 300) % 1, 4);
+        drawSparkle(ctx, cellX(grid.goal) + 14, cellY(grid.goal) + 14, ((now + 75) / 300) % 1, 3);
       }
 
       const vehicle = playback?.vehicle;
@@ -330,6 +441,16 @@ const CanvasWorld = ({
       particles.update(dt);
       particles.draw(ctx);
 
+      // Weather is the sky, so it covers everything - the city, the search and
+      // the markers alike. Rain falling behind a building would read as a
+      // texture on the ground rather than as weather.
+      const weather = weatherRef.current;
+      weather.update(dt, worldWidth, worldHeight);
+      weather.draw(ctx, worldWidth, worldHeight, now);
+
+      // The cursor stays on top of the weather: it is the one thing on screen
+      // that answers to the mouse, and losing it behind a downpour would make
+      // the editor feel broken.
       if (hoverRef.current >= 0 && brushRef.current !== null) {
         drawBrackets(ctx, cellX(hoverRef.current), cellY(hoverRef.current), PALETTE.black);
       }
@@ -438,13 +559,14 @@ const CanvasWorld = ({
 
     const cell = cellFromEvent(event);
     hoverRef.current = cell;
-    if (paintingRef.current && cell >= 0 && brushRef.current !== null) onPaint?.(cell);
+    if (paintingRef.current && cell >= 0 && brushRef.current !== null && !grab) onPaint?.(cell);
   };
 
   const handleDown = (event) => {
-    // With no brush selected the pointer drags the map instead of painting it,
-    // which is the only sensible thing for it to do once zoom exists.
-    if (brush === null) {
+    // The grab tool wins over any brush, and with no brush the pointer drags
+    // anyway - once the map can be zoomed past its frame there has to be some
+    // way to reach the rest of it.
+    if (grab || brush === null) {
       panningRef.current = { x: event.clientX, y: event.clientY };
       return;
     }
@@ -474,7 +596,7 @@ const CanvasWorld = ({
     <div className="world" ref={wrapRef} onWheel={handleWheel}>
       <canvas
         ref={canvasRef}
-        className={`world__canvas ${brush === null ? 'world__canvas--grab' : ''}`}
+        className={`world__canvas ${grab || brush === null ? 'world__canvas--grab' : ''}`}
         onMouseMove={handleMove}
         onMouseDown={handleDown}
         onMouseUp={stopPointer}
@@ -507,6 +629,9 @@ CanvasWorld.propTypes = {
   gridVersion: PropTypes.number.isRequired,
   /** Which time of day is active. Changing it invalidates the terrain cache. */
   stageIndex: PropTypes.number.isRequired,
+  /** Which weather mode is active. Painted live, so it needs no repaint. */
+  weatherIndex: PropTypes.number.isRequired,
+  colored: PropTypes.bool.isRequired,
   /** Ref holding the current {@link import('../core/playback.js').Playback}, or null. */
   playbackRef: PropTypes.object.isRequired,
   /** Ref the viewport is published into, so the toolbar can drive zoom. */
@@ -515,6 +640,8 @@ CanvasWorld.propTypes = {
   speed: PropTypes.number,
   /** The tile id the pointer paints, or null when the editor is off. */
   brush: PropTypes.number,
+  /** When set, dragging pans the map instead of painting it. */
+  grab: PropTypes.bool,
   onPaint: PropTypes.func,
   onStats: PropTypes.func,
   onViewport: PropTypes.func,

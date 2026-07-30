@@ -1,14 +1,14 @@
 import PropTypes from 'prop-types';
-import PixelIcon from './PixelIcon.jsx';
+import Icon from './Icon.jsx';
 
 /**
  * The energy bar.
  *
  * Draws exactly `max` hearts every time and fills the first `value` of them.
- * The original version rebuilt the row from whatever the current energy
- * happened to be, so the bar changed *length* as it drained and vanished
- * entirely at zero - which is why it looked broken. A fixed-length row that
- * only changes fill is both correct and easier to read at a glance.
+ * The original version rebuilt the row from whatever the current energy happened
+ * to be, so the bar changed *length* as it drained and vanished entirely at
+ * zero - which is why it looked broken. A fixed-length row that only changes
+ * fill is both correct and easier to read at a glance.
  *
  * @component
  * @param {Object} props
@@ -21,7 +21,7 @@ const Hearts = ({ value, max }) => {
   return (
     <div className="hearts" role="img" aria-label={`Energy ${filled} of ${max}`}>
       {Array.from({ length: max }, (_, i) => (
-        <PixelIcon key={i} name={i < filled ? 'heart' : 'heartEmpty'} />
+        <Icon key={i} name="heart" size={15} filled={i < filled} />
       ))}
     </div>
   );

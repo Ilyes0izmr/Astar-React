@@ -1,22 +1,23 @@
 /**
- * Procedural city generation.
+ * Procedural generation of the whole map: landscape first, then the city
+ * inside it.
  *
- * The city is laid out the way the art spec describes it: a lattice of one-tile
- * roads with solid building blocks in between, which reads as a dungeon of
- * corridors and rooms. On top of that skeleton the generator closes a few
- * streets, opens a few courtyards, and scatters hazards, so no two seeds play
- * the same.
+ * The city itself is laid out the way the art spec describes it - a lattice of
+ * one-tile roads with solid blocks between them, which reads as a dungeon of
+ * corridors and rooms. What surrounds it comes from {@link ./landscape.js}:
+ * mountains north, sea south, and a river between the two.
  *
- *     ################
- *     ### ### ### ###
- *     ### ### ### ###
- *     ----+----------
- *     ### ### ### ###
- *     ################
+ *     ^^^^^^^^^^^^^^^^^^^^^^^^^^      mountains
+ *     ####  ####  ~  ####  ####
+ *     ----  ----  =  ----  ----       bridges where streets meet the river
+ *     ####  ####  ~   ####  ###
+ *     ..........~~~............       beach
+ *     ~~~~~~~~~~~~~~~~~~~~~~~~~~      sea
+ *     ==_==_==_=~~~~~~~~~~~~~~~~      harbour, south-west
  *
  * The one hard guarantee: whatever comes out is fully connected and has a
- * reachable start and goal. Everything the generator sealed off by accident is
- * filled back in with buildings, so the player never sees an island.
+ * reachable start and goal. Everything sealed off by accident is filled back in
+ * with buildings, so the player never sees an island.
  *
  * @see instruction.md - "City Style"
  */
@@ -24,33 +25,50 @@ import { TILE } from './tiles.js';
 import { createGrid, idx, setTile, neighbors, floodFill, furthestFrom } from './grid.js';
 import { createRng, randomSeed } from './rng.js';
 import { analyzeBuildings } from './buildings.js';
+import { carveFrame, carveRiver, buildBridges, buildPort, openShoreline, carveStation, placeLighthouse } from './landscape.js';
 
 /**
  * @typedef {Object} CityOptions
- * @property {number} [width=25]
- * @property {number} [height=25]
+ * @property {number} [width=29]
+ * @property {number} [height=29]
  * @property {number} [blockSize=3] - building block edge, in tiles. Roads sit
  *   every blockSize+1 tiles.
- * @property {number} [closedStreets=0.28] - chance a street segment is walled off
- * @property {number} [courtyards=0.18] - chance a building block is an open room
- * @property {number} [hazards=0.1] - fraction of road tiles carrying rubble or spikes
+ * @property {number} [closedStreets=0.24] - chance a street segment is walled off
+ * @property {number} [courtyards=0.16] - chance a building block is an open room
+ * @property {number} [hazards=0.09] - fraction of road tiles carrying rubble or spikes
  * @property {number} [coins=0.05] - fraction of road tiles carrying a coin
  * @property {number} [seed] - defaults to a fresh random seed
  */
 
-/** @type {Required<Omit<CityOptions, 'seed'>>} */
+/**
+ * @type {Required<Omit<CityOptions, 'seed'>>}
+ *
+ * The map is deliberately large and taller than it is wide. The frame costs
+ * about nine rows off the top and bottom - three of mountains, two of beach,
+ * four of sea - so a square map would leave a squashed, wide city with little
+ * room for a search to get lost in. Extra height buys that room back.
+ */
 export const DEFAULT_CITY = {
-  width: 25,
-  height: 25,
+  width: 35,
+  height: 41,
   blockSize: 3,
-  closedStreets: 0.28,
-  courtyards: 0.18,
-  hazards: 0.1,
+  closedStreets: 0.24,
+  courtyards: 0.16,
+  hazards: 0.09,
   coins: 0.05,
 };
 
+/** Selectable map sizes, smallest first. Each is taller than wide, see above. */
+export const MAP_SIZES = [
+  { id: 'small', label: 'SMALL', width: 27, height: 31 },
+  { id: 'medium', label: 'MEDIUM', width: 35, height: 41 },
+  { id: 'large', label: 'LARGE', width: 43, height: 51 },
+  { id: 'huge', label: 'HUGE', width: 51, height: 61 },
+  { id: 'mega', label: 'MEGA', width: 61, height: 71 },
+];
+
 /**
- * Generates a complete, solvable city.
+ * Generates a complete, solvable map.
  *
  * @param {CityOptions} [options]
  * @returns {import('./grid.js').Grid}
@@ -64,13 +82,25 @@ export function generateCity(options = {}) {
   const period = blockSize + 1;
   const grid = createGrid(width, height, seed);
 
-  carveRoadLattice(grid, period);
-  openCourtyards(grid, period, blockSize, rng, opts.courtyards);
-  closeStreets(grid, period, rng, opts.closedStreets);
-  keepLargestRegion(grid);
-  placeMarkers(grid);
+  const frame = carveFrame(grid, rng);
+  grid.frame = frame;
+  carveStation(grid, frame);
+
+  carveRoadLattice(grid, period, frame);
+  openCourtyards(grid, period, blockSize, rng, opts.courtyards, frame);
+  closeStreets(grid, period, rng, opts.closedStreets, frame);
+
+  const river = carveRiver(grid, frame, rng);
+  buildBridges(grid, frame, river, period);
+  buildPort(grid, frame, rng);
+  placeLighthouse(grid, frame);
+  openShoreline(grid, frame, period);
+
+  const region = keepLargestRegion(grid);
+  placeMarkers(grid, region);
   scatterHazards(grid, rng, opts.hazards, opts.coins);
   refreshBuildings(grid);
+  plantGreenBelt(grid, frame);
 
   return grid;
 }
@@ -91,19 +121,36 @@ export function refreshBuildings(grid) {
 }
 
 /**
- * Carves the road grid: every `period`-th row and column becomes open corridor,
- * plus a ring road around the outside so the border is never a dead wall.
+ * Turns the blocks nearest the mountains into parkland.
+ *
+ * Real cities thin out into green before they hit a range rather than stopping
+ * at a hard line of masonry, and the reference art makes a lot of that
+ * transition. This runs after the building index is built, so it only has to
+ * retype the blocks rather than change any geometry.
+ *
+ * @param {import('./grid.js').Grid} grid - mutated
+ * @param {import('./landscape.js').Frame} frame
+ */
+function plantGreenBelt(grid, frame) {
+  const belt = frame.r0 + 2;
+  for (const building of grid.buildings.list) {
+    if (building.r0 <= belt) building.type = 'park';
+  }
+}
+
+/**
+ * Carves the road grid inside the frame: every `period`-th row and column
+ * becomes open corridor, plus a ring road around the interior.
  *
  * @param {import('./grid.js').Grid} grid - mutated
  * @param {number} period
+ * @param {import('./landscape.js').Frame} frame
  */
-function carveRoadLattice(grid, period) {
-  const { width, height } = grid;
-
-  for (let r = 0; r < height; r++) {
-    const isRoadRow = r % period === 0 || r === height - 1;
-    for (let c = 0; c < width; c++) {
-      const isRoadCol = c % period === 0 || c === width - 1;
+function carveRoadLattice(grid, period, frame) {
+  for (let r = frame.r0; r <= frame.r1; r++) {
+    const isRoadRow = (r - frame.r0) % period === 0 || r === frame.r1;
+    for (let c = frame.c0; c <= frame.c1; c++) {
+      const isRoadCol = (c - frame.c0) % period === 0 || c === frame.c1;
       if (isRoadRow || isRoadCol) grid.tiles[idx(grid, r, c)] = TILE.FLOOR;
     }
   }
@@ -117,12 +164,11 @@ function carveRoadLattice(grid, period) {
  * @param {number} blockSize
  * @param {ReturnType<typeof createRng>} rng
  * @param {number} chance
+ * @param {import('./landscape.js').Frame} frame
  */
-function openCourtyards(grid, period, blockSize, rng, chance) {
-  const { width, height } = grid;
-
-  for (let r0 = 1; r0 + blockSize <= height; r0 += period) {
-    for (let c0 = 1; c0 + blockSize <= width; c0 += period) {
+function openCourtyards(grid, period, blockSize, rng, chance, frame) {
+  for (let r0 = frame.r0 + 1; r0 + blockSize <= frame.r1; r0 += period) {
+    for (let c0 = frame.c0 + 1; c0 + blockSize <= frame.c1; c0 += period) {
       if (!rng.chance(chance)) continue;
 
       // Rooms are rarely the full block - shaving a row or column off gives the
@@ -130,9 +176,7 @@ function openCourtyards(grid, period, blockSize, rng, chance) {
       const h = rng.int(Math.max(1, blockSize - 1), blockSize);
       const w = rng.int(Math.max(1, blockSize - 1), blockSize);
       for (let r = r0; r < r0 + h; r++) {
-        for (let c = c0; c < c0 + w; c++) {
-          grid.tiles[idx(grid, r, c)] = TILE.FLOOR;
-        }
+        for (let c = c0; c < c0 + w; c++) grid.tiles[idx(grid, r, c)] = TILE.FLOOR;
       }
     }
   }
@@ -149,37 +193,38 @@ function openCourtyards(grid, period, blockSize, rng, chance) {
  * @param {number} period
  * @param {ReturnType<typeof createRng>} rng
  * @param {number} chance
+ * @param {import('./landscape.js').Frame} frame
  */
-function closeStreets(grid, period, rng, chance) {
-  const { width, height } = grid;
-
-  // Horizontal segments: along each road row, between consecutive intersections.
-  for (let r = 0; r < height; r += period) {
-    for (let c0 = 0; c0 + period < width; c0 += period) {
+function closeStreets(grid, period, rng, chance, frame) {
+  for (let r = frame.r0; r <= frame.r1; r += period) {
+    for (let c0 = frame.c0; c0 + period <= frame.c1; c0 += period) {
       if (!rng.chance(chance)) continue;
-      const c = rng.int(c0 + 1, c0 + period - 1);
-      grid.tiles[idx(grid, r, c)] = TILE.WALL;
+      grid.tiles[idx(grid, r, rng.int(c0 + 1, c0 + period - 1))] = TILE.WALL;
     }
   }
 
-  // Vertical segments: the same, down each road column.
-  for (let c = 0; c < width; c += period) {
-    for (let r0 = 0; r0 + period < height; r0 += period) {
+  for (let c = frame.c0; c <= frame.c1; c += period) {
+    for (let r0 = frame.r0; r0 + period <= frame.r1; r0 += period) {
       if (!rng.chance(chance)) continue;
-      const r = rng.int(r0 + 1, r0 + period - 1);
-      grid.tiles[idx(grid, r, c)] = TILE.WALL;
+      grid.tiles[idx(grid, rng.int(r0 + 1, r0 + period - 1), c)] = TILE.WALL;
     }
   }
 }
 
 /**
- * Fills in every walkable region except the biggest one.
+ * Fills in every reachable region except the biggest one.
  *
- * Closing streets can strand a courtyard or a cul-de-sac behind a wall. Rather
- * than detect and avoid that during carving, we let it happen and bulldoze the
- * leftovers - which is both simpler and guarantees the invariant absolutely.
+ * Closing streets and cutting a river can strand a courtyard or a whole bank.
+ * Rather than detect and avoid that while carving, we let it happen and
+ * bulldoze the leftovers, which is both simpler and makes the guarantee
+ * absolute.
+ *
+ * Only *city* tiles get bulldozed. Sand, piers and bridges are left alone even
+ * when they end up unreachable - filling a stranded beach with masonry would
+ * look far stranger than a beach nobody visits.
  *
  * @param {import('./grid.js').Grid} grid - mutated
+ * @returns {number[]} the cells of the surviving region
  */
 function keepLargestRegion(grid) {
   const seen = new Uint8Array(grid.tiles.length);
@@ -187,7 +232,7 @@ function keepLargestRegion(grid) {
   const buf = [];
 
   for (let i = 0; i < grid.tiles.length; i++) {
-    if (seen[i] || grid.tiles[i] === TILE.WALL) continue;
+    if (seen[i] || !isCityFloor(grid.tiles[i])) continue;
 
     const region = [i];
     seen[i] = 1;
@@ -203,31 +248,42 @@ function keepLargestRegion(grid) {
     if (!best || region.length > best.length) best = region;
   }
 
-  if (!best) return;
+  if (!best) return [];
 
   const keep = new Uint8Array(grid.tiles.length);
   for (const i of best) keep[i] = 1;
   for (let i = 0; i < grid.tiles.length; i++) {
-    if (!keep[i]) grid.tiles[i] = TILE.WALL;
+    if (!keep[i] && isCityFloor(grid.tiles[i])) grid.tiles[i] = TILE.WALL;
   }
+  return best;
+}
+
+/** Road surface the generator is free to bulldoze. */
+function isCityFloor(tile) {
+  return tile === TILE.FLOOR || tile === TILE.COIN || tile === TILE.RUBBLE || tile === TILE.SPIKE;
 }
 
 /**
  * Drops the start and goal at opposite ends of the road network.
  *
  * Two breadth-first sweeps approximate the network's diameter: the cell
- * furthest from an arbitrary corner, then the cell furthest from *that*. It is
- * the standard tree-diameter trick and it gives a far more interesting run than
+ * furthest from an arbitrary one, then the cell furthest from *that*. It is the
+ * standard tree-diameter trick and it gives a far more interesting run than
  * picking two random tiles, which land close together more often than you would
  * expect.
  *
+ * Seeding from the surviving region rather than the first walkable tile matters
+ * now that there is scenery: the first walkable tile on the map is usually a
+ * corner of beach, and a marker placed from there can land somewhere the city
+ * cannot reach.
+ *
  * @param {import('./grid.js').Grid} grid - mutated
+ * @param {number[]} region - from {@link keepLargestRegion}
  */
-function placeMarkers(grid) {
-  const firstOpen = grid.tiles.findIndex((t) => t !== TILE.WALL);
-  if (firstOpen === -1) return;
+function placeMarkers(grid, region) {
+  if (region.length === 0) return;
 
-  const { cell: a } = furthestFrom(grid, firstOpen);
+  const { cell: a } = furthestFrom(grid, region[0]);
   const { cell: b } = furthestFrom(grid, a);
 
   setTile(grid, a, TILE.START);
@@ -237,8 +293,8 @@ function placeMarkers(grid) {
 /**
  * Sprinkles rubble, spikes and coins across the roads.
  *
- * Hazards never land on the start or goal, and never on a tile whose removal
- * would matter - they are passable, so they cannot break connectivity.
+ * Hazards never land on the start or goal, and never on scenery - they are
+ * passable, so they cannot break connectivity.
  *
  * @param {import('./grid.js').Grid} grid - mutated
  * @param {ReturnType<typeof createRng>} rng

@@ -331,3 +331,58 @@ export class ParticleField {
     for (let i = 0; i < this.pool.length; i++) this.pool[i].life = 0;
   }
 }
+
+/**
+ * A pixel-art lighthouse with a rotating beam at night.
+ *
+ * The tower is drawn as a static structure. The beam sweeps 360° and is
+ * only visible during lit stages (dusk/night/sunrise).
+ *
+ * @param {CanvasRenderingContext2D} ctx
+ * @param {number} x - left edge of the lighthouse in canvas pixels
+ * @param {number} y - top edge of the lighthouse in canvas pixels
+ * @param {number} now - elapsed ms, drives the rotation
+ */
+export function drawLighthouse(ctx, x, y, now) {
+  const stage = CURRENT_STAGE;
+  // Tower body
+  px(ctx, x + 8, y + 8, 16, 40, PALETTE.bg);
+  px(ctx, x + 10, y + 4, 12, 4, PALETTE.bg);
+  // Red stripes
+  px(ctx, x + 8, y + 16, 16, 6, '#c4553f');
+  px(ctx, x + 8, y + 32, 16, 6, '#c4553f');
+  // Outline
+  px(ctx, x + 6, y + 8, 2, 40, PALETTE.black);
+  px(ctx, x + 24, y + 8, 2, 40, PALETTE.black);
+  px(ctx, x + 8, y + 6, 16, 2, PALETTE.black);
+  px(ctx, x + 8, y + 48, 16, 2, PALETTE.black);
+  // Lamp housing
+  px(ctx, x + 10, y, 12, 6, PALETTE.dark);
+  px(ctx, x + 12, y + 2, 8, 2, PALETTE.glow ?? PALETTE.bg);
+
+  // Rotating beam (only at night)
+  if (isLit(stage)) {
+    const angle = (now / 3000) * Math.PI * 2;
+    const beamLen = 80;
+    const bx = Math.round(x + 16 + Math.cos(angle) * beamLen);
+    const by = Math.round(y + 3 + Math.sin(angle) * beamLen);
+    const glow = PALETTE.glow;
+    if (glow) {
+      ctx.save();
+      ctx.globalAlpha = 0.3;
+      ctx.strokeStyle = glow;
+      ctx.lineWidth = 6;
+      ctx.beginPath();
+      ctx.moveTo(x + 16, y + 3);
+      ctx.lineTo(bx, by);
+      ctx.stroke();
+      ctx.globalAlpha = 0.15;
+      ctx.lineWidth = 16;
+      ctx.beginPath();
+      ctx.moveTo(x + 16, y + 3);
+      ctx.lineTo(bx, by);
+      ctx.stroke();
+      ctx.restore();
+    }
+  }
+}

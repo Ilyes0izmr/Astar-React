@@ -43,10 +43,33 @@ export const PALETTE = {
   backdrop: initial.backdrop,
   /** Lit windows and lamp pools. Null while the sun is up. */
   glow: initial.glow,
+  /**
+   * Named colours for surfaces a greyscale ramp cannot express - water, sand,
+   * rock, foliage. Null for every normal hour, in which case the painters fall
+   * back to the five tones and the world stays monochrome.
+   *
+   * @type {Object|null}
+   */
+  terrain: null,
 };
 
 /** The stage currently applied. Painters read this for sun direction. */
 export let CURRENT_STAGE = initial;
+
+/**
+ * Per-building accent colours, when the active weather supplies them.
+ *
+ * Empty for every normal hour. RAINBOW fills it, and the building painter picks
+ * one entry per structure so a street stops being twelve shades of the same
+ * grey. Exposed as a live array for the same reason PALETTE is a live object -
+ * a painter reads it at draw time and needs no idea where it came from.
+ *
+ * @type {string[]}
+ */
+export let BUILDING_HUES = [];
+
+/** The weather filter last composed in, so re-applying an hour keeps it. */
+let currentFilter = null;
 
 /** Subscribers notified whenever the hour changes. */
 const listeners = new Set();
@@ -60,13 +83,21 @@ const listeners = new Set();
  * @param {import('./daycycle.js').Stage} stage
  */
 export function applyStage(stage) {
-  PALETTE.bg = stage.bg;
-  PALETTE.light = stage.light;
-  PALETTE.mid = stage.mid;
-  PALETTE.dark = stage.dark;
-  PALETTE.black = stage.black;
-  PALETTE.backdrop = stage.backdrop;
-  PALETTE.glow = stage.glow;
+  // The weather filter wins where it has an opinion. Composing here rather than
+  // in the renderer means the sun direction, the lit fraction and the star count
+  // all still come from the hour - RAINBOW at midnight keeps its long shadows
+  // and its lit windows, it just paints them in different colours.
+  const tones = currentFilter?.palette ?? stage;
+
+  PALETTE.bg = tones.bg;
+  PALETTE.light = tones.light;
+  PALETTE.mid = tones.mid;
+  PALETTE.dark = tones.dark;
+  PALETTE.black = tones.black;
+  PALETTE.backdrop = tones.backdrop;
+  PALETTE.glow = tones.glow ?? stage.glow;
+  PALETTE.terrain = tones.terrain ?? null;
+  BUILDING_HUES = currentFilter?.hues ?? [];
   CURRENT_STAGE = stage;
 
   // Mirror the palette into CSS so the interface chrome changes hour with the
@@ -84,6 +115,22 @@ export function applyStage(stage) {
   }
 
   for (const fn of listeners) fn(stage);
+}
+
+/**
+ * Installs the weather's colour filter, then recomposes the palette.
+ *
+ * Kept separate from {@link applyStage} because the two change on different
+ * schedules - the hour moves on its own slider, the weather on another, and
+ * either one alone has to produce a correct result. Storing the filter and
+ * re-running the composition is what lets them be set in any order.
+ *
+ * @param {{palette: Object|null, hues: string[]|null}|null} filter
+ * @param {import('./daycycle.js').Stage} stage - the hour to recompose against
+ */
+export function applyWeatherFilter(filter, stage) {
+  currentFilter = filter && filter.palette ? filter : null;
+  applyStage(stage);
 }
 
 /**

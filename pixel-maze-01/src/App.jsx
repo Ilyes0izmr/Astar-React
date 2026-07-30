@@ -2,13 +2,15 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import './styles/tokens.css';
 import './styles/ui.css';
 
-import { generateCity, isSolvable, refreshBuildings } from './core/citygen.js';
+import { generateCity, isSolvable, refreshBuildings, MAP_SIZES } from './core/citygen.js';
 import { setTile } from './core/grid.js';
+import { isProtected } from './core/tiles.js';
 import { codeToSeed, randomSeed, seedToCode } from './core/rng.js';
 import { runAlgorithm } from './core/algorithms/index.js';
 import { Playback } from './core/playback.js';
 import { applyStage } from './core/palette.js';
 import { DEFAULT_STAGE_INDEX, stageAt } from './core/daycycle.js';
+import { DEFAULT_WEATHER_INDEX } from './core/weather.js';
 
 import CanvasWorld from './render/CanvasWorld.jsx';
 import Minimap from './render/Minimap.jsx';
@@ -18,7 +20,7 @@ import Sidebar from './ui/Sidebar.jsx';
 import Hud from './ui/Hud.jsx';
 import InfoBack from './ui/InfoBack.jsx';
 import Compare from './ui/Compare.jsx';
-import PixelIcon from './ui/PixelIcon.jsx';
+import Icon from './ui/Icon.jsx';
 import { downloadSnapshot } from './ui/download.js';
 
 /** Starting energy, and the height of the heart bar. */
@@ -56,10 +58,14 @@ function App() {
   const [gridVersion, setGridVersion] = useState(0);
 
   const [brush, setBrush] = useState(null);
+  const [grab, setGrab] = useState(false);
+  const [sizeIndex, setSizeIndex] = useState(1);
   const [playing, setPlaying] = useState(false);
   const [speedIndex, setSpeedIndex] = useState(4);
   const [stageIndex, setStageIndex] = useState(DEFAULT_STAGE_INDEX);
+  const [weatherIndex, setWeatherIndex] = useState(DEFAULT_WEATHER_INDEX);
   const [fog, setFog] = useState(false);
+  const [colored, setColored] = useState(true);
   const [showCompare, setShowCompare] = useState(false);
   const [flipped, setFlipped] = useState(false);
 
@@ -95,16 +101,20 @@ function App() {
   const generate = useCallback(() => {
     const parsed = seedText.trim() ? codeToSeed(seedText) : null;
     const seed = parsed === null ? randomSeed() : parsed;
-    setGrid(generateCity({ seed }));
+    const size = MAP_SIZES[sizeIndex] ?? MAP_SIZES[0];
+    setGrid(generateCity({ seed, width: size.width, height: size.height }));
     setGridVersion((v) => v + 1);
     clearRun();
-  }, [seedText, clearRun]);
+  }, [seedText, sizeIndex, clearRun]);
 
   /** Paints one tile. Mutates in place and signals the change. */
   const paint = useCallback(
     (cell) => {
       if (brush === null) return;
       if (grid.tiles[cell] === brush) return;
+      // Protected landscape tiles (ocean, mountains, railway, etc.) cannot be
+      // edited. Silently ignore the stroke rather than showing an error.
+      if (isProtected(grid.tiles[cell])) return;
       setTile(grid, cell, brush);
       // Painting a wall can merge two buildings or split one in half, so the
       // building index has to be rebuilt before the terrain is repainted.
@@ -256,13 +266,16 @@ function App() {
             speedIndex={speedIndex}
             onSpeedIndex={setSpeedIndex}
             speeds={SPEEDS}
-            onGenerate={generate}
             fog={fog}
             onFog={setFog}
+            grab={grab}
+            onGrab={setGrab}
             onCompare={() => setShowCompare(true)}
             onDownload={download}
             flipped={flipped}
             onToggleFlip={() => setFlipped((f) => !f)}
+            colored={colored}
+            onToggleColor={() => setColored((c) => !c)}
             onMenu={() => setScreen('menu')}
             fps={stats.fps ?? 0}
           />
@@ -278,11 +291,14 @@ function App() {
                 grid={grid}
                 gridVersion={gridVersion}
                 stageIndex={stageIndex}
+                weatherIndex={weatherIndex}
+                colored={colored}
                 playbackRef={playbackRef}
                 viewportRef={viewportRef}
                 playing={playing}
                 speed={SPEEDS[speedIndex]}
                 brush={brush}
+                grab={grab}
                 onPaint={paint}
                 onStats={setStats}
                 onViewport={setView}
@@ -321,7 +337,7 @@ function App() {
                   onClick={toggleFullscreen}
                   aria-label="Open fullscreen"
                 >
-                  <PixelIcon name="compass" />
+                  <Icon name="expand" />
                 </button>
               </div>
 
@@ -349,8 +365,12 @@ function App() {
             onSeedText={setSeedText}
             onGenerate={generate}
             seedCode={seedCode}
+            sizeIndex={sizeIndex}
+            onSizeIndex={setSizeIndex}
             stageIndex={stageIndex}
             onStageIndex={setStageIndex}
+            weatherIndex={weatherIndex}
+            onWeatherIndex={setWeatherIndex}
             energy={stats.energy ?? MAX_ENERGY}
             maxEnergy={stats.maxEnergy ?? MAX_ENERGY}
             stats={stats}

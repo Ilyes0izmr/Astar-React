@@ -28,6 +28,28 @@
 
   --font: 'Press Start 2P', 'Courier New', monospace;
 
+  /* The interface font. The world stays pixel art, but the chrome around it is
+     set in a clean bold grotesque - a full UI in Press Start 2P is unreadable at
+     any size that fits, and the reference style pairs heavy sans lettering with
+     hard-edged panels rather than pixel type. Press Start is kept for the title
+     and the seed, where it reads as a logo instead of as body copy. */
+  --font-ui: 'Inter', 'Helvetica Neue', Arial, system-ui, sans-serif;
+
+  /* Neo-brutalist chrome: a heavy stroke and a hard drop with no blur, so a
+     button looks stamped out of card rather than lit from somewhere. */
+  --edge: 3px;
+  --drop: 4px 4px 0 var(--black);
+  --drop-lg: 6px 6px 0 var(--black);
+  /* A soft corner on the chrome only. The canvas and everything drawn inside it
+     stays perfectly square - see the `canvas` rule below. */
+  --radius: 7px;
+
+  /* The one hue outside the five world tones. It exists so a single primary
+     action can out-shout a panel full of neutrals, which five greys cannot do.
+     Confined to interface chrome; nothing on the map may use it. */
+  --accent: #e2574c;
+  --accent-ink: #fff4ea;
+
   /* Type scale, straight from the spec. */
   --text-title: 16px;
   --text-panel: 12px;
@@ -39,11 +61,13 @@
   --u2: 16px;
   --u3: 24px;
 
-  --border: 2px;
+  --border: 3px;
   /* The offset shadow that gives every panel its stamped-out look. There is no
-     blur radius on purpose - a soft shadow would break the illusion instantly. */
-  --shadow: 4px 4px 0 var(--dark);
-  --shadow-sm: 2px 2px 0 var(--dark);
+     blur radius on purpose - a soft shadow would break the illusion instantly.
+     Both now fall in the outline tone rather than the shadow tone, which is what
+     turns the panels from softly-lit into cleanly cut out. */
+  --shadow: 5px 5px 0 var(--black);
+  --shadow-sm: 3px 3px 0 var(--black);
 
   /* Chamfer depth for the cut-corner button shapes. */
   --cut: 6px;
@@ -53,9 +77,16 @@
 *::before,
 *::after {
   box-sizing: border-box;
-  /* Square corners, everywhere, with no exceptions. Shape variation comes from
-     clip-path instead, which stays hard-edged at any size. */
-  border-radius: 0 !important;
+}
+
+/* The world is pixel art and must stay perfectly square; the chrome around it is
+   allowed its soft corner. Forcing radius to zero globally used to enforce that,
+   but it also made the interface impossible to restyle without fighting an
+   `!important`, so the rule is scoped to the thing it actually protects. */
+canvas,
+.world,
+.world__canvas {
+  border-radius: 0;
 }
 
 html,
@@ -69,18 +100,22 @@ body,
 body {
   background: var(--backdrop);
   color: var(--black);
-  font-family: var(--font);
-  font-size: var(--text-button);
-  line-height: 1.6;
-  letter-spacing: 0.02em;
-
-  /* Text must never be anti-aliased. Between them these cover the engines that
-     let you turn it off at all; the rest ignore the request. */
-  -webkit-font-smoothing: none;
-  -moz-osx-font-smoothing: grayscale;
-  text-rendering: geometricPrecision;
-
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.5;
+  letter-spacing: 0.01em;
   overflow: hidden;
+}
+
+/* Pixel type is still pixel type: wherever Press Start 2P is used it must not be
+   smoothed, or the letterforms blur and stop matching the map. The UI sans is
+   left alone deliberately - switching antialiasing off on a normal typeface just
+   makes it look broken. */
+.pixel-type {
+  font-family: var(--font);
+  -webkit-font-smoothing: none;
+  text-rendering: geometricPrecision;
 }
 
 /* Nearest-neighbour scaling for every canvas in the app. Without this the

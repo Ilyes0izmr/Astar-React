@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import { STAGES, stageAt } from '../core/daycycle.js';
-import PixelIcon from './PixelIcon.jsx';
+import Icon from './Icon.jsx';
 
 /**
  * The time-of-day control.
@@ -27,7 +27,7 @@ const DayScrubber = ({ index, onIndex }) => {
     <div className="dayscrubber">
       {/* The two ends of the day, so which way the slider runs needs no label. */}
       <div className="dayscrubber__track">
-        <PixelIcon name="sun" />
+        <Icon name="sun" />
         <input
           className="slider slider--day"
           type="range"
@@ -39,7 +39,7 @@ const DayScrubber = ({ index, onIndex }) => {
           aria-label="Time of day"
           aria-valuetext={stage.label}
         />
-        <PixelIcon name="moon" />
+        <Icon name="moon" />
       </div>
 
       <div className="dayscrubber__ticks" aria-hidden="true">

@@ -233,6 +233,58 @@ export const ICONS = {
     px(ctx, 5, 9, 6, 2, PALETTE.bg);
     px(ctx, 7, 11, 2, 1, PALETTE.bg);
   },
+
+  /** A cloud, for the clear/overcast end of the weather scrubber. */
+  cloud: (ctx) => {
+    px(ctx, 4, 6, 8, 4, PALETTE.black);
+    px(ctx, 2, 8, 12, 3, PALETTE.black);
+    px(ctx, 5, 7, 6, 3, PALETTE.light);
+    px(ctx, 3, 9, 10, 1, PALETTE.mid);
+  },
+
+  /** A cloud with falling streaks. */
+  rain: (ctx) => {
+    px(ctx, 4, 3, 8, 4, PALETTE.black);
+    px(ctx, 2, 5, 12, 3, PALETTE.black);
+    px(ctx, 5, 4, 6, 3, PALETTE.light);
+    for (const sx of [4, 7, 10]) {
+      px(ctx, sx, 10, 1, 3, PALETTE.mid);
+      px(ctx, sx, 13, 1, 1, PALETTE.light);
+    }
+  },
+
+  /** A flake, six-armed. */
+  snow: (ctx) => {
+    px(ctx, 7, 2, 2, 12, PALETTE.light);
+    px(ctx, 2, 7, 12, 2, PALETTE.light);
+    px(ctx, 4, 4, 2, 2, PALETTE.light);
+    px(ctx, 10, 4, 2, 2, PALETTE.light);
+    px(ctx, 4, 10, 2, 2, PALETTE.light);
+    px(ctx, 10, 10, 2, 2, PALETTE.light);
+    px(ctx, 7, 7, 2, 2, PALETTE.bg);
+  },
+
+  /** A banded arc. The one icon that reaches past the five tones on purpose,
+   *  to match the sanctioned rainbow weather mode. */
+  rainbow: (ctx) => {
+    const bands = ['#C0504D', '#C9B458', '#6FA85B', '#4F7CAC'];
+    bands.forEach((c, i) => {
+      const o = i;
+      px(ctx, 3 + o, 12 - o, 10 - o * 2, 1, c);
+      px(ctx, 2 + o, 11 - o, 1, 2, c);
+      px(ctx, 13 - o, 11 - o, 1, 2, c);
+    });
+  },
+
+  /** A CRT screen with a scanline, for the retro weather mode. */
+  crt: (ctx) => {
+    px(ctx, 2, 3, 12, 10, PALETTE.black);
+    px(ctx, 3, 4, 10, 8, PALETTE.mid);
+    px(ctx, 3, 6, 10, 1, PALETTE.dark);
+    px(ctx, 3, 9, 10, 1, PALETTE.dark);
+    px(ctx, 3, 7, 10, 1, PALETTE.light);
+    px(ctx, 6, 13, 4, 1, PALETTE.black);
+  },
 };
 
 /** @type {string[]} every registered icon name. */

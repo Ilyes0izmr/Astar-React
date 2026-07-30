@@ -39,6 +39,7 @@
   padding: var(--u);
   background: var(--bg);
   border: var(--border) solid var(--black);
+  border-radius: var(--radius);
   box-shadow: var(--shadow);
   min-height: 0;
 }
@@ -58,7 +59,7 @@
 .card__body {
   display: grid;
   grid-template-columns: 1fr 340px;
-  gap: var(--u);
+  gap: 6px;
   min-height: 0;
   min-width: 0;
 }
@@ -74,6 +75,7 @@
 .panel {
   background: var(--bg);
   border: var(--border) solid var(--black);
+  border-radius: var(--radius);
   box-shadow: var(--shadow);
   padding: var(--u);
 }
@@ -106,80 +108,82 @@
  * Pressing inverts both shadows so the face genuinely sinks into the panel.
  */
 .btn {
-  font-family: var(--font);
-  font-size: var(--text-button);
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
   color: var(--black);
   background: var(--bg);
-  border: var(--border) dotted var(--dark);
-  box-shadow:
-    -3px -3px 0 var(--light),
-    4px 4px 0 var(--mid);
-  padding: 14px var(--u2);
-  min-height: 44px;
+  border: var(--edge) solid var(--black);
+  border-radius: var(--radius);
+  box-shadow: var(--drop);
+  padding: 10px 16px;
+  min-height: 42px;
   cursor: pointer;
   text-transform: uppercase;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: var(--u);
-  /* Snappy, not smooth. A long easing curve would feel modern. */
-  transition: transform 60ms steps(2), box-shadow 60ms steps(2);
+  gap: 8px;
+  /* Short and linear. The button travels a fixed distance onto its own shadow,
+     and an eased curve would make that read as a bounce rather than a press. */
+  transition: transform 100ms linear, box-shadow 100ms linear, background-color 100ms linear;
   user-select: none;
   white-space: nowrap;
   text-decoration: none;
 }
 
+/* Lifts toward the light: the face moves up-left and the shadow grows to match,
+   so the gap between them stays consistent with a single fixed light source. */
 .btn:hover:not(:disabled) {
-  border-color: var(--black);
-  box-shadow:
-    -3px -3px 0 var(--bg),
-    4px 4px 0 var(--dark);
+  transform: translate(-1px, -1px);
+  box-shadow: 5px 5px 0 var(--black);
+  background: var(--light);
 }
 
-/* Pressed buttons sink: the lighting flips inside the face and the outer
-   shadows collapse, so the whole thing travels into the panel. */
+/* Pressed, the face travels exactly the depth of its own shadow and lands flush
+   on the panel. Matching the two distances is what makes it feel physical -
+   any other pair reads as the button sliding rather than being pushed. */
 .btn:active:not(:disabled),
 .btn--on {
-  transform: translate(2px, 2px);
-  box-shadow:
-    inset 3px 3px 0 var(--mid),
-    inset -3px -3px 0 var(--light);
-  background: var(--light);
-  color: var(--black);
-  border-style: dotted;
-  border-color: var(--black);
+  transform: translate(4px, 4px);
+  box-shadow: 0 0 0 var(--black);
+}
+
+.btn--on {
+  background: var(--black);
+  color: var(--bg);
 }
 
 .btn:disabled {
   color: var(--mid);
   border-color: var(--mid);
-  box-shadow: none;
+  background: var(--bg);
+  box-shadow: 4px 4px 0 var(--mid);
   cursor: not-allowed;
+  opacity: 0.75;
 }
 
 .btn:focus-visible {
-  outline: var(--border) solid var(--dark);
-  outline-offset: 2px;
+  outline: var(--edge) solid var(--accent);
+  outline-offset: 3px;
 }
 
-/* Still neumorphic, just seated on a darker face so the one primary action
-   reads first without breaking the lighting model. */
+/* The single loudest control on the screen. It is the one place the accent hue
+   is allowed, which is exactly why it works - a second accent would cost this
+   one its meaning. */
 .btn--primary {
-  background: var(--light);
-  color: var(--black);
-  box-shadow:
-    -3px -3px 0 var(--bg),
-    4px 4px 0 var(--dark);
+  background: var(--accent);
+  color: var(--accent-ink);
 }
 
 .btn--primary:hover:not(:disabled) {
-  box-shadow:
-    -3px -3px 0 var(--bg),
-    5px 5px 0 var(--black);
+  background: var(--accent);
+  filter: brightness(1.08);
 }
 
 .btn--danger {
-  background: var(--mid);
+  background: var(--black);
   color: var(--bg);
 }
 
@@ -187,54 +191,33 @@
   width: 100%;
 }
 
-/* Shape variants. All chamfers, so they stay hard-edged - border-radius is
-   force-zeroed globally in tokens.css and must stay that way. */
+/* Shape variants. Rounding rather than chamfers now: the reference chrome is
+   soft-cornered card with a heavy stroke, and clip-path cannot carry a border,
+   which is what forced the old chamfered shapes to fake their edge with a
+   shadow. A real border plus a radius gives both, and keeps the focus ring. */
 .btn--cut {
-  clip-path: polygon(
-    var(--cut) 0,
-    100% 0,
-    100% calc(100% - var(--cut)),
-    calc(100% - var(--cut)) 100%,
-    0 100%,
-    0 var(--cut)
-  );
+  border-radius: var(--radius);
 }
 
 .btn--tag {
-  clip-path: polygon(0 0, calc(100% - var(--cut)) 0, 100% var(--cut), 100% 100%, 0 100%);
+  justify-content: flex-start;
+  text-align: left;
+  padding-left: 12px;
 }
 
 .btn--pill {
-  clip-path: polygon(
-    10px 0,
-    calc(100% - 10px) 0,
-    100% 10px,
-    100% calc(100% - 10px),
-    calc(100% - 10px) 100%,
-    10px 100%,
-    0 calc(100% - 10px),
-    0 10px
-  );
-  padding-left: var(--u3);
-  padding-right: var(--u3);
+  border-radius: 999px;
+  padding-left: 22px;
+  padding-right: 22px;
 }
 
-/* Icon-only. Fixed square so the chamfers read as a bevelled disc. */
+/* Icon-only, a true circle. */
 .btn--round {
-  width: 40px;
-  height: 40px;
+  width: 42px;
+  height: 42px;
   padding: 0;
   flex: 0 0 auto;
-  clip-path: polygon(
-    32% 0,
-    68% 0,
-    100% 32%,
-    100% 68%,
-    68% 100%,
-    32% 100%,
-    0 68%,
-    0 32%
-  );
+  border-radius: 999px;
 }
 
 .btn--lg {
@@ -242,11 +225,20 @@
   height: 48px;
 }
 
-/* The one control that runs the whole simulation. Sized so it is unmistakably
-   the primary thing on the bar. */
+/* The one control that runs the whole simulation. */
 .btn--xl {
-  width: 60px;
-  height: 60px;
+  width: 62px;
+  height: 62px;
+  box-shadow: var(--drop-lg);
+}
+
+.btn--xl:hover:not(:disabled) {
+  box-shadow: 7px 7px 0 var(--black);
+}
+
+.btn--xl:active:not(:disabled) {
+  transform: translate(6px, 6px);
+  box-shadow: 0 0 0 var(--black);
 }
 
 /* ----------------------------------------------------------------- navbar */
@@ -324,7 +316,10 @@
   position: relative;
   min-height: 0;
   min-width: 0;
-  border: var(--border) solid var(--black);
+  border: 6px solid var(--black);
+  outline: 3px solid var(--dark);
+  outline-offset: -9px;
+  box-shadow: inset 0 0 0 3px var(--light), var(--shadow);
   background: var(--backdrop);
   overflow: hidden;
 }
@@ -394,6 +389,7 @@
 .infoback {
   width: min(420px, 100%);
   border: var(--border) solid var(--black);
+  border-radius: var(--radius);
   box-shadow: var(--shadow);
   background: var(--bg);
   padding: var(--u2);
@@ -523,7 +519,7 @@
 .sidebar {
   display: flex;
   flex-direction: column;
-  gap: var(--u);
+  gap: 6px;
   min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
@@ -531,41 +527,149 @@
 }
 
 .sidebar__section {
-  border: var(--border) solid var(--black);
+  border: var(--edge) solid var(--black);
+  border-radius: var(--radius);
   background: var(--bg);
-  padding: var(--u);
+  box-shadow: var(--drop);
+  padding: 10px 10px 8px 10px;
 }
 
 .sidebar__title {
-  font-size: var(--text-small);
-  color: var(--dark);
-  margin: 0 0 var(--u) 0;
-  font-weight: normal;
-  letter-spacing: 0.1em;
+  font-size: 13px;
+  color: var(--black);
+  margin: 0 0 8px 0;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
 }
 
 .sidebar__stack {
   display: flex;
   flex-direction: column;
+  gap: 6px;
+}
+
+/* Three to a row, every cell the same square. Twelve brushes as full-width rows
+   ran off the bottom of the panel; as a grid they fit and the shape makes the
+   set read as one palette rather than a list. */
+.sidebar__grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 5px;
+}
+
+.size-presets {
+  display: flex;
+  flex-wrap: wrap;
   gap: 4px;
 }
 
-/* Full-width rows rather than a grid of swatches: the label is the fastest way
-   to tell rubble from spikes, and there is a column of room here for it. */
-.sidebar__stack .btn {
-  width: 100%;
-  justify-content: flex-start;
-  padding: 6px var(--u);
-  box-shadow: none;
-  font-size: var(--text-small);
+.size-preset {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 6px 4px;
+  font-family: var(--font-ui);
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: var(--black);
+  background: var(--bg);
+  border: var(--edge) solid var(--black);
+  border-radius: var(--radius);
+  box-shadow: 2px 2px 0 var(--black);
+  cursor: pointer;
+  text-align: center;
+  transition: transform 100ms linear, box-shadow 100ms linear, background-color 100ms linear;
+  user-select: none;
+  text-transform: uppercase;
+}
+
+.size-preset:hover {
+  background: var(--light);
+  transform: translate(-1px, -1px);
+  box-shadow: 3px 3px 0 var(--black);
+}
+
+.size-preset--on {
+  background: var(--accent);
+  color: var(--accent-ink);
+  transform: translate(2px, 2px);
+  box-shadow: 0 0 0 var(--black);
+}
+
+.size-preset__dims {
+  display: block;
+  font-size: 7px;
+  opacity: 0.7;
+  margin-top: 2px;
+}
+
+.brush {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  aspect-ratio: 1;
+  padding: 3px 2px;
+  font-family: var(--font-ui);
+  font-size: 7px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: var(--black);
+  background: var(--bg);
+  border: var(--edge) solid var(--black);
+  border-radius: var(--radius);
+  box-shadow: 2px 2px 0 var(--black);
+  cursor: pointer;
+  transition: transform 70ms linear, box-shadow 70ms linear, background-color 70ms linear;
+}
+
+.brush:hover {
+  background: var(--light);
+  transform: translate(-1px, -1px);
+  box-shadow: 3px 3px 0 var(--black);
+}
+
+.brush--on {
+  background: var(--accent);
+  color: var(--accent-ink);
+  transform: translate(2px, 2px);
+  box-shadow: 0 0 0 var(--black);
+}
+
+.brush:focus-visible {
+  outline: var(--edge) solid var(--accent);
+  outline-offset: 2px;
+}
+
+.brush__label {
+  line-height: 1;
+}
+
+.sidebar__readout {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: 10px;
+  color: var(--black);
+}
+
+.sidebar__readout span {
+  margin-left: auto;
+  opacity: 0.6;
 }
 
 .sidebar__seed {
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
   gap: var(--u);
-  font-size: var(--text-small);
-  color: var(--dark);
+  margin: 0;
+  font-size: 10px;
+  color: var(--black);
+  opacity: 0.7;
 }
 
 .sidebar__flag {
@@ -583,49 +687,132 @@
 /* ------------------------------------------------------------------ inputs */
 
 .input {
-  font-family: var(--font);
-  font-size: var(--text-button);
+  font-family: var(--font-ui);
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
   background: var(--bg);
-  border: var(--border) solid var(--black);
+  border: var(--edge) solid var(--black);
+  border-radius: var(--radius);
+  box-shadow: inset 2px 2px 0 rgb(0 0 0 / 0.08);
   color: var(--black);
-  padding: var(--u);
+  padding: 10px var(--u);
   width: 100px;
   text-align: center;
   text-transform: uppercase;
+}
+
+.input:focus-visible {
+  outline: var(--edge) solid var(--accent);
+  outline-offset: 2px;
 }
 
 .input--wide {
   width: 100%;
 }
 
-/* Built from the same two pixels as everything else: a flat track and a square
-   knob, both hard-edged. */
+/* A stroked track with a round stamped knob, matching the buttons: same edge
+   weight, same hard drop, same accent for the part you grab. */
 .slider {
   -webkit-appearance: none;
   appearance: none;
   width: 120px;
-  height: 12px;
+  height: 16px;
   background: var(--light);
-  border: var(--border) solid var(--black);
+  border: var(--edge) solid var(--black);
+  border-radius: 999px;
   cursor: pointer;
 }
 
 .slider::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 10px;
-  height: 16px;
-  background: var(--dark);
-  border: var(--border) solid var(--black);
+  width: 20px;
+  height: 20px;
+  background: var(--accent);
+  border: var(--edge) solid var(--black);
+  border-radius: 999px;
+  box-shadow: 2px 2px 0 var(--black);
   cursor: pointer;
 }
 
 .slider::-moz-range-thumb {
-  width: 10px;
-  height: 16px;
-  background: var(--dark);
-  border: var(--border) solid var(--black);
+  width: 20px;
+  height: 20px;
+  background: var(--accent);
+  border: var(--edge) solid var(--black);
+  border-radius: 999px;
+  box-shadow: 2px 2px 0 var(--black);
   cursor: pointer;
+}
+
+.slider:focus-visible {
+  outline: var(--edge) solid var(--accent);
+  outline-offset: 3px;
+}
+
+/* The two world sliders take their knob from the world itself: `--glow` is
+   rewritten by applyStage on every hour and by the weather filter on top of it,
+   so the handle you grab is always the colour of the light you are grabbing. */
+.slider--day::-webkit-slider-thumb,
+.slider--weather::-webkit-slider-thumb {
+  background: var(--glow);
+}
+
+.slider--day::-moz-range-thumb,
+.slider--weather::-moz-range-thumb {
+  background: var(--glow);
+}
+
+/* ---------------------------------------------------------------- tooltips */
+
+/* Driven off `data-tip`, so any control gets one by adding an attribute and
+   nothing has to render a component or track hover state in React. The native
+   `title` popup was what this replaces: it takes a second to appear, cannot be
+   styled, and looked like an operating system had wandered into the game. */
+[data-tip] {
+  position: relative;
+}
+
+[data-tip]::after {
+  content: attr(data-tip);
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%) translateY(-3px);
+  z-index: 40;
+
+  padding: 5px 9px;
+  background: var(--black);
+  color: var(--bg);
+  border: 2px solid var(--black);
+  border-radius: 5px;
+  box-shadow: 3px 3px 0 var(--mid);
+
+  font-family: var(--font-ui);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  white-space: nowrap;
+
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 90ms linear, transform 90ms linear;
+}
+
+[data-tip]:hover::after,
+[data-tip]:focus-visible::after {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* Anything in the bottom strip would have its tip clipped by the card, so those
+   flip above the control instead. */
+.zoombar [data-tip]::after,
+.sidebar [data-tip]::after {
+  top: auto;
+  bottom: calc(100% + 8px);
 }
 
 /* The day scrubber reads warm at the sunrise end and cool at the night end.
@@ -655,7 +842,9 @@
 }
 
 .dayscrubber__tick {
-  font-size: 6px;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0;
   color: var(--mid);
   text-align: center;
   overflow: hidden;
@@ -668,9 +857,59 @@
 }
 
 .dayscrubber__label {
-  font-size: var(--text-small);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
   color: var(--black);
   text-align: center;
+}
+
+/* The weather scrubber shares the day scrubber's markup and every one of its
+   rules; only the track fill differs, so it is aliased rather than duplicated.
+   Keeping one set of rules is what stops the two sliders drifting apart. */
+.weatherscrubber {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.weatherscrubber__track {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.weatherscrubber__ticks {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 2px;
+}
+
+.weatherscrubber__tick {
+  font-size: 8px;
+  font-weight: 800;
+  color: var(--mid);
+  text-align: center;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.weatherscrubber__tick--on {
+  color: var(--black);
+}
+
+.weatherscrubber__label {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: var(--black);
+  text-align: center;
+}
+
+/* Runs calm to loud, left to right. */
+.slider--weather {
+  width: 100%;
+  background: var(--light);
 }
 
 /* ------------------------------------------------------------------ hearts */
@@ -719,26 +958,29 @@
 
 .card--algo {
   background: var(--bg);
-  border: var(--border) solid var(--mid);
-  box-shadow: var(--shadow-sm);
+  border: var(--edge) solid var(--black);
+  border-radius: var(--radius);
+  box-shadow: var(--drop);
   padding: var(--u2) var(--u);
   text-align: center;
   cursor: pointer;
-  font-family: var(--font);
+  font-family: var(--font-ui);
   color: var(--black);
-  transition: transform 60ms steps(2);
+  transition: transform 70ms linear, box-shadow 70ms linear, background-color 70ms linear;
 }
 
 .card--algo:hover {
-  /* Hover translates upward by two pixels. */
-  transform: translateY(-2px);
+  transform: translate(-1px, -2px);
+  box-shadow: 5px 6px 0 var(--black);
 }
 
+/* The chosen card presses in and takes the accent, so which algorithm is armed
+   is legible from across the room rather than from a two-pixel lift. */
 .card--algo.card--on {
-  border-color: var(--black);
-  background: var(--light);
-  transform: translateY(-2px);
-  box-shadow: var(--shadow);
+  background: var(--accent);
+  color: var(--accent-ink);
+  transform: translate(4px, 4px);
+  box-shadow: 0 0 0 var(--black);
 }
 
 .card__label {
