@@ -72,10 +72,9 @@ const Navbar = ({
   colored,
   onToggleColor,
   onMenu,
-  fps = 0,
 }) => (
   <div className="navbar">
-    <div className="navbar__group" style={{ flex: '0 0 auto' }}>
+    <div className="navbar__group">
       {/* Solve, pause and reset are the same size and shape on purpose: they are
           one transport cluster, and making the primary one larger split it into
           a button and two afterthoughts. Colour carries the emphasis instead. */}
@@ -218,10 +217,6 @@ const Navbar = ({
 
     <span className="navbar__spacer" />
 
-    <div className="fps" data-tip="Frames per second">
-      FPS <b>{fps}</b>
-    </div>
-
     <button type="button" className="btn btn--cut" onClick={onMenu} data-tip="Back to the menu">
       <Icon name="menu" />
       MENU
@@ -250,7 +245,6 @@ Navbar.propTypes = {
   colored: PropTypes.bool.isRequired,
   onToggleColor: PropTypes.func.isRequired,
   onMenu: PropTypes.func.isRequired,
-  fps: PropTypes.number,
 };
 
 export default Navbar;

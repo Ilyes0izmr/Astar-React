@@ -246,7 +246,9 @@ const CanvasWorld = ({
           // A stand of trees is a building type in terrain, so we reuse the park logic.
           drawBuildingTile(ctx, grid, cell, x, y, openMask(grid, row, col), { type: 'park' });
         } else if (tile === TILE.STATION_BUILDING) {
-          drawBuildingTile(ctx, grid, cell, x, y, openMask(grid, row, col), null);
+          const margin = Math.floor(grid.width * 0.2);
+          const b = { type: 'warehouse', seed: 1337, height: 2, c0: margin, r0: row, c1: grid.width - margin - 1, r1: row };
+          drawBuildingTile(ctx, grid, cell, x, y, openMask(grid, row, col), b);
         } else {
           // Coins are deliberately absent here - they spin, so they belong to
           // the animated layer below.

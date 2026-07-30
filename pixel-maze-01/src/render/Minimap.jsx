@@ -1,7 +1,8 @@
-import { useEffect, useRef, memo } from 'react';
+import { useEffect, useRef, memo, useState } from 'react';
 import PropTypes from 'prop-types';
 import { PALETTE } from '../core/palette.js';
 import { TILE } from '../core/tiles.js';
+import Icon from '../ui/Icon.jsx';
 
 /** Pixels per tile on the minimap. */
 const MINI_PX = 4;
@@ -24,6 +25,7 @@ const REDRAW_MS = 80;
  * @component
  */
 const Minimap = ({ grid, gridVersion, playbackRef, fog }) => {
+  const [visible, setVisible] = useState(true);
   const canvasRef = useRef(null);
 
   useEffect(() => {
@@ -45,6 +47,11 @@ const Minimap = ({ grid, gridVersion, playbackRef, fog }) => {
     const draw = () => {
       const playback = playbackRef.current;
       const explored = playback?.explored ?? null;
+
+      if (!visible) {
+        timer = setTimeout(draw, REDRAW_MS);
+        return;
+      }
 
       ctx.fillStyle = PALETTE.bg;
       ctx.fillRect(0, 0, width, height);
@@ -116,12 +123,22 @@ const Minimap = ({ grid, gridVersion, playbackRef, fog }) => {
 
     draw();
     return () => clearTimeout(timer);
-  }, [grid, gridVersion, playbackRef, fog]);
+  }, [grid, gridVersion, playbackRef, fog, visible]);
 
   return (
     <div className="panel minimap">
-      <div className="panel__title">MAP</div>
-      <canvas ref={canvasRef} className="minimap__canvas" />
+      <div className="panel__title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        MAP
+        <button
+          type="button"
+          onClick={() => setVisible(!visible)}
+          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: 'inherit' }}
+          title={visible ? 'Hide minimap' : 'Show minimap'}
+        >
+          <Icon name={visible ? 'fog' : 'fogOff'} size={14} />
+        </button>
+      </div>
+      <canvas ref={canvasRef} className="minimap__canvas" style={{ display: visible ? 'block' : 'none' }} />
     </div>
   );
 };

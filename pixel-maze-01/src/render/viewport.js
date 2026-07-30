@@ -104,8 +104,10 @@ export class Viewport {
    * @returns {number}
    */
   #fitScale(containerW, containerH) {
-    const raw = Math.floor(Math.min(containerW / this.#worldW, containerH / this.#worldH));
-    return Math.max(MIN_SCALE, Math.min(MAX_SCALE, raw));
+    const raw = Math.min(containerW / this.#worldW, containerH / this.#worldH);
+    // Snap down to the nearest 0.5 so zoom steps align cleanly.
+    const snapped = Math.floor(raw * 2) / 2;
+    return Math.max(MIN_SCALE, Math.min(MAX_SCALE, snapped));
   }
 
   /**
@@ -196,8 +198,7 @@ export class Viewport {
    */
   setScale(next, containerW, containerH, anchorX, anchorY) {
     if (!usable(containerW, containerH)) return;
-    const low = this.#fitScale(containerW, containerH);
-    const target = Math.max(low, Math.min(MAX_SCALE, Math.round(next)));
+    const target = Math.max(MIN_SCALE, Math.min(MAX_SCALE, Math.round(next * 2) / 2));
     if (!Number.isFinite(target) || target === this.#scale) return;
 
     const ax = Number.isFinite(anchorX) ? anchorX : containerW / 2;
@@ -225,7 +226,7 @@ export class Viewport {
    * @param {number} [anchorY]
    */
   zoomIn(containerW, containerH, anchorX, anchorY) {
-    this.setScale(this.#scale + 1, containerW, containerH, anchorX, anchorY);
+    this.setScale(this.#scale + 0.5, containerW, containerH, anchorX, anchorY);
   }
 
   /**
@@ -235,7 +236,7 @@ export class Viewport {
    * @param {number} [anchorY]
    */
   zoomOut(containerW, containerH, anchorX, anchorY) {
-    this.setScale(this.#scale - 1, containerW, containerH, anchorX, anchorY);
+    this.setScale(this.#scale - 0.5, containerW, containerH, anchorX, anchorY);
   }
 
   /** @returns {boolean} whether there is a zoom step left to take. */
@@ -251,7 +252,7 @@ export class Viewport {
    */
   canZoomOut(containerW, containerH) {
     if (!usable(containerW, containerH)) return false;
-    return this.#scale > this.#fitScale(containerW, containerH);
+    return this.#scale > MIN_SCALE;
   }
 
   /**
@@ -296,7 +297,7 @@ export class Viewport {
    */
   clamp(containerW, containerH) {
     if (!usable(containerW, containerH)) return;
-    this.#scale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, Math.round(this.#scale)));
+    this.#scale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, Math.round(this.#scale * 2) / 2));
 
     const limits = this.#limits(containerW, containerH);
     const x = limits.centredX ? 0 : Math.max(0, Math.min(limits.maxX, Math.round(this.#offsetX)));

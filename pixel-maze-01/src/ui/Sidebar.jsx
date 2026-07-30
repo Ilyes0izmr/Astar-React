@@ -105,18 +105,36 @@ const Sidebar = ({
 
       <section className="sidebar__section">
         <h2 className="sidebar__title">SIZE</h2>
-        <div className="size-presets">
-          {MAP_SIZES.map((entry, i) => (
-            <button
-              key={entry.id}
-              type="button"
-              className={`size-preset ${sizeIndex === i ? 'size-preset--on' : ''}`}
-              onClick={() => onSizeIndex(i)}
-              data-tip={`${entry.width} × ${entry.height}`}
-            >
-              {entry.label}
-            </button>
-          ))}
+        <div className="dayscrubber">
+          <div className="dayscrubber__track">
+            <Icon name="city" />
+            <input
+              className="slider slider--wide"
+              style={{ width: '100%' }}
+              type="range"
+              min={0}
+              max={MAP_SIZES.length - 1}
+              step={1}
+              value={sizeIndex}
+              onChange={(event) => onSizeIndex(Number(event.target.value))}
+              aria-label="Map Size"
+              aria-valuetext={`${size.width} × ${size.height}`}
+            />
+            <Icon name="mountain" />
+          </div>
+          <div className="dayscrubber__ticks" aria-hidden="true">
+            {MAP_SIZES.map((entry, i) => (
+              <span
+                key={entry.id}
+                className={`dayscrubber__tick ${
+                  i === sizeIndex ? 'dayscrubber__tick--on' : ''
+                }`}
+              >
+                {entry.label}
+              </span>
+            ))}
+          </div>
+          <div className="weatherscrubber__label">{`${size.width} × ${size.height}`}</div>
         </div>
       </section>
 
